@@ -18,39 +18,27 @@
 #include <utility>
 
 class Auth {
-    std::string ip, cert_path, api_key;
-    unsigned int port;
+    std::string cert_path, api_key;
+    nlohmann::json headers;
 
-    Auth() :
-            ip(std::getenv("FORTIGATE_GATEWAY_IP")),
-            cert_path(std::getenv("PATH_TO_CA_CERT")),
-            api_key(std::getenv("FORTIGATE_API_KEY")),
-            port(std::stoi(std::getenv("ADMIN_SSH_PORT"))),
-            url(std::format("https://{}:{}/api/v2", ip, port)) {
+    friend class API;
+
+    Auth() : cert_path(std::getenv("PATH_TO_FORTIGATE_CA_CERT")),
+             api_key(std::getenv("FORTIGATE_API_KEY")) {
         headers["Authorization"] = std::format("Bearer {}", api_key);
     }
 
 public:
-    std::string url;
-    nlohmann::json headers;
-
-    // Singleton pattern
     static Auth& getInstance() {
         static Auth instance;
         return instance;
     }
 
-    // Deleted methods to enforce singleton
     Auth(const Auth&) = delete;
     void operator=(const Auth&) = delete;
 
-    [[nodiscard]] const std::string &getCertPath() const {
-        return cert_path;
-    }
-
-    [[nodiscard]] const nlohmann::json &getHeaders() const {
-        return headers;
-    }
+    [[nodiscard]] const std::string& getCertPath() const { return cert_path; }
+    [[nodiscard]] const nlohmann::json& getHeaders() const { return headers; }
 };
 
 class API {
@@ -66,7 +54,7 @@ class API {
 
         curl = curl_easy_init();
         if(curl) {
-            std::string url = auth.url + path;
+            std::string url = base_api_endpoint + path;
 
             struct curl_slist *headers = nullptr;
             for (auto& [key, value] : auth.getHeaders().items()) {
@@ -78,14 +66,11 @@ class API {
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
             curl_easy_setopt(curl, CURLOPT_CAINFO, auth.getCertPath().c_str());
 
-            if (method == "POST") {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
-            } else if (method == "PUT") {
+            if (method == "POST") curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
+            else if (method == "PUT") {
                 curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
-            } else if (method == "DELETE") {
-                curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-            }
+            } else if (method == "DELETE") curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
 
             res = curl_easy_perform(curl);
             if(res != CURLE_OK) {
@@ -99,13 +84,13 @@ class API {
 
 public:
     inline static Auth& auth = Auth::getInstance();
+    inline static std::string base_api_endpoint = std::format("https://{}:{}/api/v2",
+                                                  std::getenv("FORTIGATE_GATEWAY_IP"),
+                                                  std::stoi(std::getenv("FORTIGATE_ADMIN_SSH_PORT")));
 
     static nlohmann::json get(const std::string &path) { return request("GET", path); }
-
     static void post(const std::string &path, const nlohmann::json &data) { request("POST", path, data); }
-
     static void put(const std::string &path, const nlohmann::json &data) { request("PUT", path, data); }
-
     static void del(const std::string &path) { request("DELETE", path); }
 };
 
@@ -118,13 +103,11 @@ namespace Forti {
         try {
             validator.validate(document);
             return true;
-        } catch (const std::exception& e) {
-            return false;
-        }
+        } catch (const std::exception& e) { return false; }
     }
 
     class DNSFilter {
-        inline static std::string api_endpoint = std::format("{}/cmdb/dnsfilter/profile", API::auth.url);
+        inline static std::string api_endpoint = std::format("{}/cmdb/dnsfilter/profile", API::base_api_endpoint);
 
     public:
         static void set(const std::string& feed,
@@ -153,7 +136,7 @@ namespace Forti {
                         std::vector<nlohmann::json> newFilters(filters.size() - 1);
                         std::move(filters.begin(), filters.begin() + index, newFilters.begin());
                         std::move(filters.begin() + index + 1, filters.end(), newFilters.begin() + index);
-                        filters = newFilters;
+                        filters = std::move(newFilters);
                     }
                 } else { filters[index]["action"] = action; }
             } else if (!active) {
@@ -190,22 +173,22 @@ namespace Forti {
 
     class ThreatFeed {
         inline static std::string command = "snapshot";
-        inline static std::string cmdb = std::format("{}/cmdb/system/external-resource", API::auth.url);
-        inline static std::string monitor = std::format("{}/monitor/system/external-resource/dynamic", API::auth.url);
-        inline static std::string cmdb_entry_list = std::format("{}/entry-list?include_notes=true&vdom=root&mkey=", API::auth.url);
+        inline static std::string external_resource = std::format("{}/cmdb/system/external-resource", API::base_api_endpoint);
+        inline static std::string external_resource_monitor = std::format("{}/monitor/system/external-resource/dynamic", API::base_api_endpoint);
+        inline static std::string external_resource_entry_list = std::format("{}/entry-list?include_notes=true&vdom=root&mkey=", API::base_api_endpoint);
 
         static void update(const std::string& name, const nlohmann::json& data) {
-            API::post(std::format("{}/{}", monitor, name), data);
+            API::post(std::format("{}/{}", external_resource_monitor, name), data);
         }
 
-        static void updateMonitor(const nlohmann::json& data) { API::post(monitor, data); }
+        static void updateMonitor(const nlohmann::json& data) { API::post(external_resource_monitor, data); }
 
         static nlohmann::json get(const std::string& query = "") {
-            return API::get(std::format("{}/{}", cmdb, query));
+            return API::get(std::format("{}/{}", external_resource, query));
         }
 
         static nlohmann::json getEntryList(const std::string& feed) {
-            return API::get(std::format("{}/{}", cmdb_entry_list, feed));
+            return API::get(std::format("{}/{}", external_resource_entry_list, feed));
         }
 
         static unsigned int count(const std::string& match) {
@@ -222,14 +205,14 @@ namespace Forti {
         static void set(const std::string& name, bool enable = true) {
             nlohmann::json j;
             j["status"] = enable ? "enable" : "disable";
-            API::post(std::format("{}/{}", cmdb, name), j);
+            API::post(std::format("{}/{}", external_resource, name), j);
         }
 
         static void add(const std::string& name, const std::string& category) {
             nlohmann::json j;
             j["name"] = name;
             j["category"] = category;
-            API::post(cmdb, j);
+            API::post(external_resource, j);
         }
 
         static void del(const std::string& name) { API::del(name); }
