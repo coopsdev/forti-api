@@ -188,6 +188,53 @@ namespace Forti {
         }
     };
 
+    class ThreatFeed {
+        inline static std::string command = "snapshot";
+        inline static std::string cmdb = std::format("{}/cmdb/system/external-resource", API::auth.url);
+        inline static std::string monitor = std::format("{}/monitor/system/external-resource/dynamic", API::auth.url);
+        inline static std::string cmdb_entry_list = std::format("{}/entry-list?include_notes=true&vdom=root&mkey=", API::auth.url);
+
+        static void update(const std::string& name, const nlohmann::json& data) {
+            API::post(std::format("{}/{}", monitor, name), data);
+        }
+
+        static void updateMonitor(const nlohmann::json& data) { API::post(monitor, data); }
+
+        static nlohmann::json get(const std::string& query = "") {
+            return API::get(std::format("{}/{}", cmdb, query));
+        }
+
+        static nlohmann::json getEntryList(const std::string& feed) {
+            return API::get(std::format("{}/{}", cmdb_entry_list, feed));
+        }
+
+        static unsigned int count(const std::string& match) {
+            auto results = get();
+            unsigned int count = 0;
+            for (const auto& doc : results) if (doc["name"] == match) ++count;
+            return count;
+        }
+
+        static void enable(const std::string& name) { set(name, true); }
+
+        static void disable(const std::string& name) { set(name, false); }
+
+        static void set(const std::string& name, bool enable = true) {
+            nlohmann::json j;
+            j["status"] = enable ? "enable" : "disable";
+            API::post(std::format("{}/{}", cmdb, name), j);
+        }
+
+        static void add(const std::string& name, const std::string& category) {
+            nlohmann::json j;
+            j["name"] = name;
+            j["category"] = category;
+            API::post(cmdb, j);
+        }
+
+        static void del(const std::string& name) { API::del(name); }
+    };
+
 } // namespace Forti
 
 #endif //FORTI_API_H
