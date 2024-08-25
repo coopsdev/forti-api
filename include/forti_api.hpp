@@ -175,7 +175,7 @@ namespace Forti {
         inline static std::string command = "snapshot";
         inline static std::string external_resource = std::format("{}/cmdb/system/external-resource", API::base_api_endpoint);
         inline static std::string external_resource_monitor = std::format("{}/monitor/system/external-resource/dynamic", API::base_api_endpoint);
-        inline static std::string external_resource_entry_list = std::format("{}/entry-list?include_notes=true&vdom=root&mkey=", API::base_api_endpoint);
+        inline static std::string external_resource_entry_list = std::format("{}/entry-list?include_notes=true&vdom=root&mkey=", external_resource);
 
         static void update(const std::string& name, const nlohmann::json& data) {
             API::post(std::format("{}/{}", external_resource_monitor, name), data);
