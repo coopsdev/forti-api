@@ -5,3 +5,9 @@ project('forti_api', 'cpp',
 json_dep = dependency('nlohmann_json', required: true)
 json_validator_dep = dependency('json-schema-validator', required: true)
 libcurl_dep = dependency('libcurl', required: true)
+
+executable('forti_api', 'main.cpp',
+           dependencies: [json_dep, json_validator_dep, libcurl_dep],
+           include_directories: 'include',
+           install: false
+)
