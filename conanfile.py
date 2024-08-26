@@ -17,7 +17,7 @@ class Pkg(ConanFile):
         'libcurl/8.9.1'
     ]
     generators = "PkgConfigDeps", "MesonToolchain"
-    exports_sources = "meson.build", "include/*"
+    exports_sources = "meson.build", "include/*", "main.cpp"
     implements = ["auto_header_only"]
 
     def layout(self):
