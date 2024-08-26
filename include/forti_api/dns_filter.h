@@ -28,9 +28,7 @@ struct DnsProfile {
 };
 
 struct DnsFilter {
-    std::string name;
-    std::string q_origin_key;
-    std::string comment;
+    std::string name, q_origin_key, comment;
     std::vector<std::string> domain_filter;
     DnsProfile ftgd_dns;
 

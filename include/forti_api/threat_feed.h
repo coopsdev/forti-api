@@ -13,21 +13,15 @@
 #include "api.h"
 
 struct ThreatFeedSchema {
-    std::string name;
-    std::string status;
-    std::string type;
-    std::string update_method;
-    std::string server_identity_check;
+    std::string name, status, type, update_method, server_identity_check, comments;
     unsigned int category;
-    std::string comments;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(ThreatFeedSchema, name, status, type, update_method,
                                    server_identity_check, category, comments)
 };
 
 struct CommandEntry {
-    std::string name;
-    std::string command{};
+    std::string name, command{};
     std::vector<std::string> entries;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(CommandEntry, name, command, entries)

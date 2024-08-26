@@ -16,15 +16,9 @@ struct Response {
     int size;
     int matched_count;
     int next_idx;
-    std::string revision;
-    std::vector<nlohmann::json> results; // Adjust based on actual type needed
-    std::string vdom;
-    std::string path;
-    std::string name;
-    std::string status;
+    std::string revision, vdom, path, name, status, serial, version;
+    std::vector<nlohmann::json> results; // Adjust this later
     int http_status;
-    std::string serial;
-    std::string version;
     int build;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Response, http_method, size, matched_count, next_idx, revision,
@@ -74,6 +68,7 @@ class API {
             for (auto& [key, value] : auth.getHeaders().items()) {
                 headers = curl_slist_append(headers, std::format("{}: {}", key, nlohmann::to_string(value)).c_str());
             }
+
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
