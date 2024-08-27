@@ -1,5 +1,5 @@
 project('forti_api', 'cpp',
-        version : '0.1.0',
+        version : '0.1.1',
         default_options : ['warning_level=3', 'cpp_std=c++26'])
 
 json_dep = dependency('nlohmann_json', required: true)
