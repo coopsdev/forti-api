@@ -2,15 +2,15 @@
 // Created by Cooper Larson on 8/26/24.
 //
 
-#ifndef FORTI_API_THREAT_FEED_H
-#define FORTI_API_THREAT_FEED_H
+#ifndef FORTI_API_THREAT_FEED_HPP
+#define FORTI_API_THREAT_FEED_HPP
 
-#include <string>
+#include <cstring>
 #include <format>
 #include <nlohmann/json.hpp>
 #include <vector>
 #include <regex>
-#include "api.h"
+#include "api.hpp"
 
 struct ThreatFeedSchema {
     std::string name, status, type, update_method, server_identity_check, comments;
@@ -60,10 +60,10 @@ struct ExternalResourceEntryListResponse : public Response {
 };
 
 struct CommandEntry {
-    std::string name, command{};
+    std::string name, command;
     std::vector<std::string> entries;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(CommandEntry, name, command, entries)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(CommandEntry, name, entries, command)
 };
 
 struct CommandsRequest {
@@ -83,11 +83,11 @@ class ThreatFeed {
 
 public:
 
-    static void update(const std::string& name, const nlohmann::json& data) {
+    static void update_info(const std::string& name, const nlohmann::json& data) {
         API::post(std::format("{}/{}", external_resource_monitor, name), data);
     }
 
-    static void updateMonitor(const nlohmann::json& data) { API::post(external_resource_monitor, data); }
+    static void update_feed(const nlohmann::json& data) { API::post(external_resource_monitor, data); }
 
     static std::vector<ThreatFeedSchema> get() {
         return API::get<ExternalResourcesResponse>(external_resource).results;
@@ -97,16 +97,16 @@ public:
         return API::get<ExternalResourceResponse>(std::format("{}/{}", external_resource, query)).results;
     }
 
-    static std::vector<Entry> getEntryList(const std::string& feed) {
+    static std::vector<Entry> get_entry_list(const std::string& feed) {
         return API::get<ExternalResourceEntryListResponse>
                 (std::format("{}/{}", external_resource_entry_list, feed)).results.entries;
     }
 
-    static unsigned int count(const std::string& match) {
+    static bool contains(const std::string& name) {
         auto results = get();
-        unsigned int count = 0;
-        for (const auto& doc : results) if (doc.name == match) ++count;
-        return count;
+        return std::ranges::any_of(results, [&name](const ThreatFeedSchema& threatFeed) {
+            return threatFeed.name == name;
+        });
     }
 
     static void enable(const std::string& name) { set(name, true); }
@@ -119,21 +119,14 @@ public:
         API::post(std::format("{}/{}", external_resource, name), j);
     }
 
-    static void add(const std::string& name, const std::string& category) {
+    static void add(const std::string& name, unsigned int category) {
         nlohmann::json j;
         j["name"] = name;
         j["category"] = category;
         API::post(external_resource, j);
     }
 
-    static void del(const std::regex& regex) {
-        auto feeds = get();
-        std::reverse(feeds.begin(), feeds.end());
-        for (const auto& feed : feeds)
-            if (std::regex_match(feed.name, regex)) API::del(feed.name);
-    }
-
     static void del(const std::string& name) { API::del(std::format("{}/{}", external_resource, name)); }
 };
 
-#endif //FORTI_API_THREAT_FEED_H
+#endif //FORTI_API_THREAT_FEED_HPP

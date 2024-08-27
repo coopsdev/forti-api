@@ -5,8 +5,8 @@
 #ifndef FORTI_API_H
 #define FORTI_API_H
 
-#include "forti_api/api.h"
-#include "forti_api/threat_feed.h"
-#include "forti_api/dns_filter.h"
+#include "forti_api/api.hpp"
+#include "forti_api/threat_feed.hpp"
+#include "forti_api/dns_filter.hpp"
 
 #endif //FORTI_API_H

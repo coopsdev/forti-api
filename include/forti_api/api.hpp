@@ -2,17 +2,17 @@
 // Created by Cooper Larson on 8/26/24.
 //
 
-#ifndef FORTI_API_API_H
-#define FORTI_API_API_H
+#ifndef FORTI_API_API_HPP
+#define FORTI_API_API_HPP
 
-#include <string>
+#include <cstring>
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <format>
 #include <curl/curl.h>
 
 struct Response {
-    unsigned int size, matched_count, next_idx, http_status, build;
+    unsigned int size{}, matched_count{}, next_idx{}, http_status{}, build{};
     std::string http_method, revision, vdom, path, name, status, serial, version;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Response, http_method, size, matched_count, next_idx, revision,
@@ -100,4 +100,4 @@ public:
     static void del(const std::string &path) { request<Response>("DELETE", path); }
 };
 
-#endif //FORTI_API_API_H
+#endif //FORTI_API_API_HPP

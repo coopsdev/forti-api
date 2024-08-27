@@ -2,13 +2,13 @@
 // Created by Cooper Larson on 8/26/24.
 //
 
-#ifndef FORTI_API_DNS_FILTER_H
-#define FORTI_API_DNS_FILTER_H
+#ifndef FORTI_API_DNS_FILTER_HPP
+#define FORTI_API_DNS_FILTER_HPP
 
-#include <string>
+#include <cstring>
 #include <format>
 #include <nlohmann/json.hpp>
-#include "api.h"
+#include "api.hpp"
 
 
 struct Filter {
@@ -122,4 +122,4 @@ public:
     }
 };
 
-#endif //FORTI_API_DNS_FILTER_H
+#endif //FORTI_API_DNS_FILTER_HPP
