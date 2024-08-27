@@ -9,19 +9,18 @@
 #include <format>
 #include <nlohmann/json.hpp>
 #include <vector>
-#include <regex>
 #include "api.hpp"
 
-struct ThreatFeedSchema {
+struct ThreatFeedType {
     std::string name, status, type, update_method, server_identity_check, comments;
     unsigned int category{};
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ThreatFeedSchema, name, status, type, update_method,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ThreatFeedType, name, status, type, update_method,
                                    server_identity_check, category, comments)
 };
 
 struct ExternalResourcesResponse : public Response {
-    std::vector<ThreatFeedSchema> results;
+    std::vector<ThreatFeedType> results;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourcesResponse, http_method, size, matched_count, next_idx,
                                    revision, vdom, path, name, status, http_status, serial, version,
@@ -29,7 +28,7 @@ struct ExternalResourcesResponse : public Response {
 };
 
 struct ExternalResourceResponse : public Response {
-    ThreatFeedSchema results;
+    ThreatFeedType results;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourceResponse, http_method, size, matched_count, next_idx,
                                    revision, vdom, path, name, status, http_status, serial, version,
@@ -89,11 +88,11 @@ public:
 
     static void update_feed(const nlohmann::json& data) { API::post(external_resource_monitor, data); }
 
-    static std::vector<ThreatFeedSchema> get() {
+    static std::vector<ThreatFeedType> get() {
         return API::get<ExternalResourcesResponse>(external_resource).results;
     }
 
-    static ThreatFeedSchema get(const std::string& query) {
+    static ThreatFeedType get(const std::string& query) {
         return API::get<ExternalResourceResponse>(std::format("{}/{}", external_resource, query)).results;
     }
 
@@ -104,7 +103,7 @@ public:
 
     static bool contains(const std::string& name) {
         auto results = get();
-        return std::ranges::any_of(results, [&name](const ThreatFeedSchema& threatFeed) {
+        return std::ranges::any_of(results, [&name](const ThreatFeedType& threatFeed) {
             return threatFeed.name == name;
         });
     }
