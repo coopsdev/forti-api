@@ -12,7 +12,7 @@
 #include <curl/curl.h>
 
 struct Response {
-    int size, matched_count, next_idx, http_status, build;
+    unsigned int size, matched_count, next_idx, http_status, build;
     std::string http_method, revision, vdom, path, name, status, serial, version;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Response, http_method, size, matched_count, next_idx, revision,

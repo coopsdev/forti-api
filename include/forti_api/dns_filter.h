@@ -83,12 +83,28 @@ public:
 
             if (matchFound) {
                 filters[index].action = action;
-                setFilters(feed, filters);
+                set_filters(feed, filters);
             }
         }
     }
 
-    static void setFilters(
+    static void set_threat_feeds(const std::string& feed, bool active = true) {
+        std::string action = active ? "block" : "allow";
+        auto query = std::format("{}/{}/ftgd-dns/", api_endpoint, feed);
+        auto response = API::get<DnsProfileResponse>(query);
+
+        if (response.http_status == 200) {
+            auto& filters = response.results.filters;
+
+            for (auto& filter : filters) {
+                if (filter.category >= 192 && filter.category <= 221) filter.action = action;
+            }
+
+            set_filters(feed, response.results);
+        }
+    }
+
+    static void set_filters(
             const std::string& feed,
             const nlohmann::json& filters = nlohmann::json()) {
         auto query = std::format("{}/{}/ftgd-dns/", api_endpoint, feed);
