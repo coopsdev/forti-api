@@ -12,10 +12,8 @@
 
 
 struct Filter {
-    int id;
-    int category;
-    std::string action;
-    std::string log;
+    unsigned int id, q_origin_key, category;
+    std::string action, log;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Filter, id, category, action, log)
 };
@@ -35,70 +33,76 @@ struct DnsFilter {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsFilter, name, q_origin_key, comment, domain_filter, ftgd_dns)
 };
 
-struct DnsResponse {
+struct DnsProfileResponse : public Response {
+    DnsProfile results;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsProfileResponse, http_method, size, matched_count, next_idx,
+                                   revision, vdom, path, name, status, http_status, serial, version,
+                                   build, results)
+};
+
+struct DnsFiltersResponse : public Response {
     std::vector<DnsFilter> results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsResponse, results)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsFiltersResponse, http_method, size, matched_count, next_idx,
+                                   revision, vdom, path, name, status, http_status, serial, version,
+                                   build, results)
+};
+
+struct DnsFilterResponse : public Response {
+    DnsFilter results;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsFilterResponse, http_method, size, matched_count, next_idx,
+                                   revision, vdom, path, name, status, http_status, serial, version,
+                                   build, results)
 };
 
 class DNSFilter {
     inline static std::string api_endpoint = std::format("{}/cmdb/dnsfilter/profile", API::base_api_endpoint);
 
 public:
-    static void set(const std::string& feed,
-                    const std::string& category,
-                    const std::string& name,
-                    bool active = true) {
-        std::string action = active ? "allow" : "block";
-        auto filters = getFilters(feed);
+    static void set_filter(const std::string& feed,
+                           unsigned int category,
+                           bool active = true) {
+        std::string action = active ? "block" : "allow";
+        auto query = std::format("{}/{}/ftgd-dns/", api_endpoint, feed);
+        auto response = API::get<DnsProfileResponse>(query);
 
-        std::pair<bool, unsigned int> searchPair = std::make_pair(false, 0);
-        for (unsigned int i = 0; i < filters.size(); ++i) {
-            if (filters[i]["name"] == name) {
-                searchPair = std::make_pair(true, i);
-                break;
+        if (response.http_status == 200) {
+            auto filters = response.results.filters;
+
+            std::pair<bool, unsigned int> pair = std::make_pair(false, 0);
+            for (unsigned int i = 0; i < filters.size(); ++i) {
+                if (filters[i].category == category) {
+                    pair = std::make_pair(true, i);
+                    break;
+                }
+            }
+
+            const auto& [matchFound, index] = pair;
+
+            if (matchFound) {
+                filters[index].action = action;
+                setFilters(feed, filters);
             }
         }
-
-        auto [matchFound, index] = searchPair;
-
-        if (matchFound) {
-            if (active) {
-                if (index == 0 || index == filters.size() - 1) {
-                    if (index == 0) std::swap(filters[0], filters[filters.size() - 1]);
-                    filters.resize(filters.size() - 1);
-                } else {
-                    std::vector<nlohmann::json> newFilters(filters.size() - 1);
-                    std::move(filters.begin(), filters.begin() + index, newFilters.begin());
-                    std::move(filters.begin() + index + 1, filters.end(), newFilters.begin() + index);
-                    filters = std::move(newFilters);
-                }
-            } else { filters[index]["action"] = action; }
-        } else if (!active) {
-            nlohmann::json j;
-            j["category"] = category;
-            j["action"] = action;
-            filters.push_back(j);
-        }
-
-        setFilters(feed, filters);
     }
 
     static void setFilters(
             const std::string& feed,
             const nlohmann::json& filters = nlohmann::json()) {
-        nlohmann::json j;
-        j["ftgd-dns"]["filters"] = filters;
-        API::put(std::format("{}/{}", api_endpoint, feed), j);
+        auto query = std::format("{}/{}/ftgd-dns/", api_endpoint, feed);
+        auto profile = API::get<DnsProfileResponse>(query).results;
+        profile.filters = filters;
+        API::put(query, profile);
     }
 
-    static std::vector<nlohmann::json> getFilters(const std::string& feed) {
-        Response response = API::get(std::format("{}/{}", api_endpoint, feed));
-        auto results = response.results;
-        for (const auto& entry : results) {
-            if (entry["name"] == feed) return entry["ftgd_dns"]["filters"];
-        }
-        return {};
+    static std::vector<DnsFilter> get() {
+        return API::get<DnsFiltersResponse>(api_endpoint).results;
+    }
+
+    static DnsFilter get(const std::string& feed) {
+        return API::get<DnsFilterResponse>(std::format("{}/{}", api_endpoint, feed)).results;
     }
 };
 

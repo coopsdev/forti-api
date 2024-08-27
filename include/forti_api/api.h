@@ -12,17 +12,11 @@
 #include <curl/curl.h>
 
 struct Response {
-    std::string http_method;
-    int size;
-    int matched_count;
-    int next_idx;
-    std::string revision, vdom, path, name, status, serial, version;
-    std::vector<nlohmann::json> results; // Adjust this later
-    int http_status;
-    int build;
+    int size, matched_count, next_idx, http_status, build;
+    std::string http_method, revision, vdom, path, name, status, serial, version;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Response, http_method, size, matched_count, next_idx, revision,
-                                   results, vdom, path, name, status, http_status, serial, version, build)
+                                   vdom, path, name, status, http_status, serial, version, build)
 };
 
 class Auth {
@@ -55,7 +49,8 @@ class API {
         return size * nmemb;
     }
 
-    static nlohmann::json request(const std::string &method, const std::string &path, const nlohmann::json &data = {}) {
+    template<typename T>
+    static T request(const std::string &method, const std::string &path, const nlohmann::json &data = {}) {
         CURL *curl;
         CURLcode res;
         std::string readBuffer;
@@ -97,10 +92,12 @@ public:
                                                               std::getenv("FORTIGATE_GATEWAY_IP"),
                                                               std::stoi(std::getenv("FORTIGATE_ADMIN_SSH_PORT")));
 
-    static nlohmann::json get(const std::string &path) { return request("GET", path); }
-    static void post(const std::string &path, const nlohmann::json &data) { request("POST", path, data); }
-    static void put(const std::string &path, const nlohmann::json &data) { request("PUT", path, data); }
-    static void del(const std::string &path) { request("DELETE", path); }
+    template<typename T>
+    static T get(const std::string &path) { return request<T>("GET", path); }
+
+    static void post(const std::string &path, const nlohmann::json &data) { request<Response>("POST", path, data); }
+    static void put(const std::string &path, const nlohmann::json &data) { request<Response>("PUT", path, data); }
+    static void del(const std::string &path) { request<Response>("DELETE", path); }
 };
 
 #endif //FORTI_API_API_H

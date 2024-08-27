@@ -20,6 +20,45 @@ struct ThreatFeedSchema {
                                    server_identity_check, category, comments)
 };
 
+struct ExternalResourcesResponse : public Response {
+    std::vector<ThreatFeedSchema> results;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourcesResponse, http_method, size, matched_count, next_idx,
+                                   revision, vdom, path, name, status, http_status, serial, version,
+                                   build, results)
+};
+
+struct ExternalResourceResponse : public Response {
+    ThreatFeedSchema results;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourceResponse, http_method, size, matched_count, next_idx,
+                                   revision, vdom, path, name, status, http_status, serial, version,
+                                   build, results)
+};
+
+struct Entry {
+    std::string entry, valid;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Entry, entry, valid);
+};
+
+struct ExternalResourceEntryList {
+    std::string status, resource_file_status;
+    unsigned long last_content_update_time;
+    std::vector<Entry> entries;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourceEntryList, status, resource_file_status,
+                                   last_content_update_time, entries);
+};
+
+struct ExternalResourceEntryListResponse : public Response {
+    ExternalResourceEntryList results;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourceEntryListResponse, http_method, size, matched_count, next_idx,
+                                   revision, vdom, path, name, status, http_status, serial, version,
+                                   build, results)
+};
+
 struct CommandEntry {
     std::string name, command{};
     std::vector<std::string> entries;
@@ -50,20 +89,23 @@ public:
 
     static void updateMonitor(const nlohmann::json& data) { API::post(external_resource_monitor, data); }
 
-    static std::vector<ThreatFeedSchema> get() { return API::get(external_resource); }
-
-    static ThreatFeedSchema get(const std::string& query) {
-        return API::get(std::format("{}/{}", external_resource, query));
+    static std::vector<ThreatFeedSchema> get() {
+        return API::get<ExternalResourcesResponse>(external_resource).results;
     }
 
-    static nlohmann::json getEntryList(const std::string& feed) {
-        return API::get(std::format("{}/{}", external_resource_entry_list, feed));
+    static ThreatFeedSchema get(const std::string& query) {
+        return API::get<ExternalResourceResponse>(std::format("{}/{}", external_resource, query)).results;
+    }
+
+    static std::vector<Entry> getEntryList(const std::string& feed) {
+        return API::get<ExternalResourceEntryListResponse>
+                (std::format("{}/{}", external_resource_entry_list, feed)).results.entries;
     }
 
     static unsigned int count(const std::string& match) {
         auto results = get();
         unsigned int count = 0;
-        for (const auto& doc : results) if (doc["name"] == match) ++count;
+        for (const auto& doc : results) if (doc.name == match) ++count;
         return count;
     }
 
