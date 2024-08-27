@@ -14,7 +14,7 @@
 
 struct ThreatFeedSchema {
     std::string name, status, type, update_method, server_identity_check, comments;
-    unsigned int category;
+    unsigned int category{};
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(ThreatFeedSchema, name, status, type, update_method,
                                    server_identity_check, category, comments)
@@ -44,7 +44,7 @@ struct Entry {
 
 struct ExternalResourceEntryList {
     std::string status, resource_file_status;
-    unsigned long last_content_update_time;
+    unsigned long last_content_update_time{};
     std::vector<Entry> entries;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourceEntryList, status, resource_file_status,

@@ -12,7 +12,7 @@
 
 
 struct Filter {
-    unsigned int id, q_origin_key, category;
+    unsigned int id{}, q_origin_key{}, category{};
     std::string action, log;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Filter, id, category, action, log)
