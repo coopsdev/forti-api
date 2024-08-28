@@ -15,3 +15,11 @@ TEST(TestSystem, TestGetWan1IP) {
     auto ip = System::get_wan_ip();
     ASSERT_TRUE(validate_ip_addr(ip)) << "Invalid IP: " << ip;
 }
+
+TEST(TestSystem, TestGetPhysicalInterface) {
+    auto interface = System::get_physical_interface("wan1");
+    ASSERT_TRUE(interface.name == "wan1") << "Unexpected interface name: " << interface.name;
+    ASSERT_TRUE(interface.vdom == "root") << "Default interface vdom !== root";
+    ASSERT_TRUE(!interface.ipv4_addresses.empty());
+    ASSERT_TRUE(interface.type == "physical");
+}
