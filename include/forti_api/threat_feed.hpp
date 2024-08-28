@@ -5,6 +5,7 @@
 #ifndef FORTI_API_THREAT_FEED_HPP
 #define FORTI_API_THREAT_FEED_HPP
 
+#include "dns_filter.hpp"
 #include <cstring>
 #include <format>
 #include <nlohmann/json.hpp>
@@ -73,12 +74,19 @@ struct CommandsRequest {
 
 class ThreatFeed {
     inline static std::string command = "snapshot";
+    inline static std::string comment = "This threat feed is automatically managed by forti-api";
     inline static std::string external_resource =
             std::format("{}/cmdb/system/external-resource", API::base_api_endpoint);
     inline static std::string external_resource_monitor =
             std::format("{}/monitor/system/external-resource/dynamic", API::base_api_endpoint);
     inline static std::string external_resource_entry_list =
             std::format("{}/entry-list?include_notes=true&vdom=root&mkey=", external_resource);
+
+    static void set(const std::string& name, bool enable = true) {
+        nlohmann::json j;
+        j["status"] = enable ? "enable" : "disable";
+        API::post(std::format("{}/{}", external_resource, name), j);
+    }
 
 public:
 
@@ -112,20 +120,28 @@ public:
 
     static void disable(const std::string& name) { set(name, false); }
 
-    static void set(const std::string& name, bool enable = true) {
-        nlohmann::json j;
-        j["status"] = enable ? "enable" : "disable";
-        API::post(std::format("{}/{}", external_resource, name), j);
-    }
-
     static void add(const std::string& name, unsigned int category) {
-        nlohmann::json j;
-        j["name"] = name;
-        j["category"] = category;
-        API::post(external_resource, j);
+        ThreatFeedType threat_feed(
+                name,
+                "enable",
+                "domain",
+                "push",
+                "none",
+                comment,
+                category);
+        API::post(external_resource, threat_feed);
     }
 
     static void del(const std::string& name) { API::del(std::format("{}/{}", external_resource, name)); }
+
+    static void delete_auto_generated_feeds() {
+        auto feeds = get();
+        for (const auto& feed : feeds) {
+            if (feed.comments == comment) {
+                del(feed.name);
+            }
+        }
+    }
 };
 
 #endif //FORTI_API_THREAT_FEED_HPP
