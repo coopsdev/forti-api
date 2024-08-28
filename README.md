@@ -6,7 +6,7 @@ Welcome to **forti-api**, the sophisticated FortiOS v7.2.8 API wrapper developed
 
 **Project Overview:**
 - **Current Phase:** I am currently transitioning the library from Python to C++26 to enhance its robustness and type safety.
-- **Capabilities:** This library supports comprehensive management of Threat Feeds and DNS Filters, with ongoing development to expand these capabilities.
+- **Capabilities:** This library supports comprehensive (in active dev) management of Threat Feeds and DNS Filters, with ongoing development to expand these capabilities.
 - **Future Developments:** You can look forward to an expanding suite of API features designed to empower administrators with more precise control over their security infrastructure.
 
 **Engagement and Contributions:**
