@@ -10,6 +10,14 @@
 #include <iostream>
 #include <format>
 #include <curl/curl.h>
+#include <algorithm>
+#include <cctype>
+
+inline static std::string trim(const std::string& str) {
+    auto front = std::find_if_not(str.begin(), str.end(), ::isspace);
+    auto back = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
+    return (front < back ? std::string(front, back) : std::string());
+}
 
 struct Response {
     unsigned int size{}, matched_count{}, next_idx{}, http_status{}, build{};
@@ -20,14 +28,13 @@ struct Response {
 };
 
 class Auth {
-    std::string cert_path, api_key;
-    nlohmann::json headers;
+    std::string cert_path, api_key, auth_header;
 
     friend class API;
 
     Auth() : cert_path(std::getenv("PATH_TO_FORTIGATE_CA_CERT")),
              api_key(std::getenv("FORTIGATE_API_KEY")) {
-        headers["Authorization"] = std::format("Bearer {}", api_key);
+        auth_header = std::format("Authorization: Bearer {}", api_key);
     }
 
 public:
@@ -39,8 +46,8 @@ public:
     Auth(const Auth&) = delete;
     void operator=(const Auth&) = delete;
 
-    [[nodiscard]] const std::string& getCertPath() const { return cert_path; }
-    [[nodiscard]] const nlohmann::json& getHeaders() const { return headers; }
+    [[nodiscard]] const std::string& get_cert_path() const { return cert_path; }
+    [[nodiscard]] const std::string& get_auth_header() const { return auth_header; }
 };
 
 class API {
@@ -60,15 +67,14 @@ class API {
             std::string url = base_api_endpoint + path;
 
             struct curl_slist *headers = nullptr;
-            for (auto& [key, value] : auth.getHeaders().items()) {
-                headers = curl_slist_append(headers, std::format("{}: {}", key, nlohmann::to_string(value)).c_str());
-            }
+            headers = curl_slist_append(headers, auth.get_auth_header().c_str());
 
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            curl_easy_setopt(curl, CURLOPT_CAINFO, auth.getCertPath().c_str());
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_easy_setopt(curl, CURLOPT_CAINFO, auth.get_cert_path().c_str());
 
             if (method == "POST") curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
             else if (method == "PUT") {
@@ -90,7 +96,7 @@ public:
     inline static Auth& auth = Auth::getInstance();
     inline static std::string base_api_endpoint = std::format("https://{}:{}/api/v2",
                                                               std::getenv("FORTIGATE_GATEWAY_IP"),
-                                                              std::stoi(std::getenv("FORTIGATE_ADMIN_SSH_PORT")));
+                                                              std::getenv("FORTIGATE_ADMIN_SSH_PORT"));
 
     template<typename T>
     static T get(const std::string &path) { return request<T>("GET", path); }

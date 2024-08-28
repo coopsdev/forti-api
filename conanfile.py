@@ -12,7 +12,7 @@ class Pkg(ConanFile):
     topics = ("c++", "security")
     settings = "os", "compiler", "arch", "build_type"
     generators = "PkgConfigDeps", "MesonToolchain"
-    exports_sources = "meson.build", "include/*", "main.cpp"
+    exports_sources = "meson.build", "include/*", "tests/*", "main.cpp"
 
     def layout(self):
         self.folders.source = '.'
@@ -23,6 +23,7 @@ class Pkg(ConanFile):
     def requirements(self):
         self.requires('nlohmann_json/3.11.3')
         self.requires('libcurl/8.9.1')
+        self.test_requires('gtest/1.14.0')
 
     def build(self):
         meson = Meson(self)
