@@ -32,6 +32,10 @@ class Auth {
              cert_password(std::getenv("FORTIGATE_SSL_CERT_PASS")),
              api_key(std::getenv("FORTIGATE_API_KEY")) {
         auth_header = std::format("Authorization: Bearer {}", api_key);
+        assert_necessary_fields_exist();
+    }
+
+    void assert_necessary_fields_exist() {
         assert(!ca_cert_path.empty());
         assert(!ssl_cert_path.empty());
         assert(!cert_password.empty());

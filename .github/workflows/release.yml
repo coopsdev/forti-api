@@ -1,0 +1,56 @@
+name: C++ CI Push Main
+
+on:
+  release:
+    types: [ published ]
+    branches: [ main ]
+  push:
+    branches: [main]
+  pull_request:
+    types: [ closed ]
+    branches:
+      - main
+
+jobs:
+  build-and-publish-release:
+    runs-on: [self-hosted, Linux, X64, ubuntu-latest-lts]
+    if: ${{ github.event_name == 'push' && github.event.pull_request == null }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set PATH for pipx binaries
+        run: echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Show ccache stats before build
+        run: ccache -s
+
+      - name: Get latest release tag
+        id: latest-tag
+        run: echo "::set-output name=tag::$(git describe --tags `git rev-list --tags --max-count=1`)"
+
+      - name: Cache ccache and dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/gh-runner/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ steps.latest-tag.outputs.tag }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+            ${{ runner.os }}-ccache-${{ steps.latest-tag.outputs.tag }}
+
+      - name: Install Package Dependencies
+        run: |
+          conan install . --build=missing
+
+      - name: Show ccache stats after build
+        run: ccache -s
+
+      - name: Create Package
+        run: |
+          cd /home/gh-runner/actions-runner/_work/forti_api/forti_api
+          conan create . -pr:a vps-release --build=missing -u
+
+      - name: Upload Packages to Artifactory
+        run: |
+          conan upload "*" -r vps-local --confirm
