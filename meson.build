@@ -1,6 +1,6 @@
 project('forti_api', 'cpp',
         version : '0.1.5',
-        default_options : ['warning_level=3', 'cpp_std=c++26'])
+        default_options : ['warning_level=3', 'cpp_std=c++23'])
 
 source_root = meson.source_root()
 
