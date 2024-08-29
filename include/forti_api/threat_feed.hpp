@@ -12,26 +12,27 @@
 #include <vector>
 #include "api.hpp"
 
-struct ThreatFeedType {
+
+struct PushThreatFeed {
     std::string name, status, type, update_method, server_identity_check, comments;
     unsigned int category{};
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(ThreatFeedType, name, status, type, update_method,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(PushThreatFeed, name, status, type, update_method,
                                                 server_identity_check, category, comments)
 };
 
-struct ExternalResourcesResponse : public Response {
-    std::vector<ThreatFeedType> results;
+struct FeedThreatFeed : public PushThreatFeed {
+    std::string resource;
+    unsigned int refresh_rate{};
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourcesResponse, http_method, size, matched_count, next_idx,
-                                   revision, vdom, path, name, status, http_status, serial, version,
-                                   build, results)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(FeedThreatFeed, name, status, type, update_method,
+                                                server_identity_check, category, comments, resource, refresh_rate)
 };
 
-struct ExternalResourceResponse : public Response {
-    ThreatFeedType results;
+struct ExternalResourcesResponse : public Response {
+    std::vector<PushThreatFeed> results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourceResponse, http_method, size, matched_count, next_idx,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(ExternalResourcesResponse, http_method, size, matched_count, next_idx,
                                    revision, vdom, path, name, status, http_status, serial, version,
                                    build, results)
 };
@@ -39,7 +40,7 @@ struct ExternalResourceResponse : public Response {
 struct Entry {
     std::string entry, valid;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Entry, entry, valid);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Entry, entry, valid);
 };
 
 struct ExternalResourceEntryList {
@@ -47,14 +48,14 @@ struct ExternalResourceEntryList {
     unsigned long last_content_update_time{};
     std::vector<Entry> entries;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourceEntryList, status, resource_file_status,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(ExternalResourceEntryList, status, resource_file_status,
                                    last_content_update_time, entries);
 };
 
 struct ExternalResourceEntryListResponse : public Response {
     ExternalResourceEntryList results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ExternalResourceEntryListResponse, http_method, size, matched_count, next_idx,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(ExternalResourceEntryListResponse, http_method, size, matched_count, next_idx,
                                    revision, vdom, path, name, status, http_status, serial, version,
                                    build, results)
 };
@@ -63,13 +64,13 @@ struct CommandEntry {
     std::string name, command;
     std::vector<std::string> entries;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(CommandEntry, name, entries, command)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(CommandEntry, name, entries, command)
 };
 
 struct CommandsRequest {
     std::vector<CommandEntry> commands;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(CommandsRequest, commands)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(CommandsRequest, commands)
 };
 
 class ThreatFeed {
@@ -87,19 +88,18 @@ class ThreatFeed {
     }
 
 public:
-
     static void update_info(const std::string& name, const nlohmann::json& data) {
         API::post(std::format("{}/{}", external_resource_monitor, name), data);
     }
 
     static void update_feed(const nlohmann::json& data) { API::post(external_resource_monitor, data); }
 
-    static std::vector<ThreatFeedType> get() {
+    static std::vector<PushThreatFeed> get() {
         return API::get<ExternalResourcesResponse>(external_resource).results;
     }
 
-    static ThreatFeedType get(const std::string& query) {
-        return API::get<ExternalResourceResponse>(std::format("{}/{}", external_resource, query)).results;
+    static PushThreatFeed get(const std::string& query) {
+        return API::get<ExternalResourcesResponse>(std::format("{}/{}", external_resource, query)).results[0];
     }
 
     static std::vector<Entry> get_entry_list(const std::string& feed) {
@@ -108,10 +108,7 @@ public:
     }
 
     static bool contains(const std::string& name) {
-        auto results = get();
-        return std::ranges::any_of(results, [&name](const ThreatFeedType& threatFeed) {
-            return threatFeed.name == name;
-        });
+        return API::get<ExternalResourcesResponse>(std::format("{}/{}", external_resource, name)).http_status == 200;
     }
 
     static void enable(const std::string& name) { set(name, true); }
@@ -119,21 +116,18 @@ public:
     static void disable(const std::string& name) { set(name, false); }
 
     static void add(const std::string& name, unsigned int category) {
-        ThreatFeedType threat_feed(
-                name,
-                "enable",
-                "domain",
-                "push",
-                "none",
-                comment,
-                category);
+        PushThreatFeed threat_feed(name, "enable", "domain", "push", "none", comment, category);
         API::post(external_resource, threat_feed);
     }
 
-    static void del(const std::string& name) { API::del(std::format("{}/{}", external_resource, name)); }
+    static void del(const std::string& name) {
+        if (contains(name)) API::del(std::format("{}/{}", external_resource, name));
+        else std::cerr << "Couldn't locate threat feed for deletion: " << name << std::endl;
+    }
 
     static void delete_auto_generated_feeds() {
         auto feeds = get();
+        std::reverse(feeds.begin(), feeds.end());
         for (const auto& feed : feeds) {
             if (feed.comments == comment) {
                 del(feed.name);

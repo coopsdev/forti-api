@@ -15,14 +15,14 @@ struct Filter {
     unsigned int id{}, q_origin_key{}, category{};
     std::string action, log;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Filter, id, category, action, log)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Filter, id, category, action, log)
 };
 
 struct DnsProfile {
     std::string options;
     std::vector<Filter> filters;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsProfile, options, filters)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsProfile, options, filters)
 };
 
 struct DnsFilter {
@@ -30,13 +30,13 @@ struct DnsFilter {
     std::vector<std::string> domain_filter;
     DnsProfile ftgd_dns;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsFilter, name, q_origin_key, comment, domain_filter, ftgd_dns)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsFilter, name, q_origin_key, comment, domain_filter, ftgd_dns)
 };
 
 struct DnsProfileResponse : public Response {
     DnsProfile results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsProfileResponse, http_method, size, matched_count, next_idx,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsProfileResponse, http_method, size, matched_count, next_idx,
                                    revision, vdom, path, name, status, http_status, serial, version,
                                    build, results)
 };
@@ -44,7 +44,7 @@ struct DnsProfileResponse : public Response {
 struct DnsFiltersResponse : public Response {
     std::vector<DnsFilter> results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsFiltersResponse, http_method, size, matched_count, next_idx,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsFiltersResponse, http_method, size, matched_count, next_idx,
                                    revision, vdom, path, name, status, http_status, serial, version,
                                    build, results)
 };
@@ -52,7 +52,7 @@ struct DnsFiltersResponse : public Response {
 struct DnsFilterResponse : public Response {
     DnsFilter results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DnsFilterResponse, http_method, size, matched_count, next_idx,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsFilterResponse, http_method, size, matched_count, next_idx,
                                    revision, vdom, path, name, status, http_status, serial, version,
                                    build, results)
 };

@@ -12,6 +12,7 @@
 #include <curl/curl.h>
 #include <algorithm>
 #include <cctype>
+#include "util/define_type.hpp"
 
 struct Response {
     unsigned int size{}, matched_count{}, next_idx{}, http_status{}, build{};
@@ -22,13 +23,20 @@ struct Response {
 };
 
 class Auth {
-    std::string cert_path, api_key, auth_header;
+    std::string ca_cert_path, ssl_cert_path, cert_password, api_key, auth_header;
 
     friend class API;
 
-    Auth() : cert_path(std::getenv("PATH_TO_FORTIGATE_CA_CERT")),
+    Auth() : ca_cert_path(std::getenv("PATH_TO_FORTIGATE_CA_CERT")),
+             ssl_cert_path(std::getenv("PATH_TO_FORTIGATE_SSL_CERT")),
+             cert_password(std::getenv("FORTIGATE_SSL_CERT_PASS")),
              api_key(std::getenv("FORTIGATE_API_KEY")) {
         auth_header = std::format("Authorization: Bearer {}", api_key);
+        assert(!ca_cert_path.empty());
+        assert(!ssl_cert_path.empty());
+        assert(!cert_password.empty());
+        assert(!api_key.empty());
+        assert(!auth_header.empty());
     }
 
 public:
@@ -39,9 +47,6 @@ public:
 
     Auth(const Auth&) = delete;
     void operator=(const Auth&) = delete;
-
-    [[nodiscard]] const std::string& get_cert_path() const { return cert_path; }
-    [[nodiscard]] const std::string& get_auth_header() const { return auth_header; }
 };
 
 class API {
@@ -55,6 +60,35 @@ class API {
         return size * nmemb;
     }
 
+    static int curl_debug_callback(CURL *handle, curl_infotype type, char *data, size_t size, void *userptr) {
+        switch (type) {
+            case CURLINFO_TEXT:
+                std::cerr << "== Info: " << std::string(data, size);
+                break;
+            case CURLINFO_HEADER_OUT:
+                std::cerr << "=> Send header: " << std::string(data, size);
+                break;
+            case CURLINFO_DATA_OUT:
+                std::cerr << "=> Send data: " << std::string(data, size);
+                break;
+            case CURLINFO_SSL_DATA_OUT:
+                std::cerr << "=> Send SSL data: " << std::string(data, size);
+                break;
+            case CURLINFO_HEADER_IN:
+                std::cerr << "<= Recv header: " << std::string(data, size);
+                break;
+            case CURLINFO_DATA_IN:
+                std::cerr << "<= Recv data: " << std::string(data, size);
+                break;
+            case CURLINFO_SSL_DATA_IN:
+                std::cerr << "<= Recv SSL data: " << std::string(data, size);
+                break;
+            default:
+                break;
+        }
+        return 0;
+    }
+
     template<typename T>
     static T request(const std::string &method, const std::string &path, const nlohmann::json &data = {}) {
         CURL *curl;
@@ -62,33 +96,46 @@ class API {
         std::string readBuffer;
 
         curl = curl_easy_init();
-        if(curl) {
+        if (curl) {
             std::string url = base_api_endpoint + path;
 
             struct curl_slist *headers = nullptr;
-            headers = curl_slist_append(headers, auth.get_auth_header().c_str());
+            headers = curl_slist_append(headers, "Content-Type: application/json");
+            headers = curl_slist_append(headers, auth.auth_header.c_str());
 
+            curl_easy_setopt(curl, CURLOPT_SSL_SESSIONID_CACHE, 1L);
+            curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 0L);
+            curl_easy_setopt(curl, CURLOPT_FRESH_CONNECT, 0L);
+            curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, -1);
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
-            curl_easy_setopt(curl, CURLOPT_CAINFO, auth.get_cert_path().c_str());
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 1L);
+            curl_easy_setopt(curl, CURLOPT_CAINFO, auth.ca_cert_path.c_str());
+            curl_easy_setopt(curl, CURLOPT_SSLCERT, auth.ssl_cert_path.c_str());
+            curl_easy_setopt(curl, CURLOPT_KEYPASSWD, auth.cert_password.c_str());
 
-            if (method == "POST") curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
-            else if (method == "PUT") {
-                curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
-            } else if (method == "DELETE") curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+            std::string json_payload = convert_keys_to_hyphens(data).dump();  // do not simplify by deleting this
+            if (method == "POST" || method == "PUT")
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_payload.c_str());
+
+            if (method != "POST" && method != "GET")
+                curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method.c_str());
+
+#ifdef ENABLE_DEBUG
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+            curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, curl_debug_callback);
+            curl_easy_setopt(curl, CURLOPT_DEBUGDATA, nullptr);
+#endif
 
             res = curl_easy_perform(curl);
-            if(res != CURLE_OK) {
-                std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-            }
+            if (res != CURLE_OK) std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
             curl_easy_cleanup(curl);
         }
 
-        return nlohmann::json::parse(readBuffer);
+        return convert_keys_to_underscores(nlohmann::json::parse(readBuffer));
     }
 
 public:

@@ -14,20 +14,20 @@ struct SystemResponse {
     unsigned int build{};
     std::string http_method, revision, vdom, path, name, action, status, serial, version;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SystemResponse, build, http_method, revision, vdom, path, name, action,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(SystemResponse, build, http_method, revision, vdom, path, name, action,
                                    status, serial, version);
 };
 
 struct GeneralInterface {
     std::string name;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(GeneralInterface, name);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GeneralInterface, name);
 };
 
 struct GeneralResponse : public Response {
     std::vector<GeneralInterface> results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(GeneralResponse, http_method, size, matched_count, next_idx,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GeneralResponse, http_method, size, matched_count, next_idx,
                                    revision, vdom, path, name, status, http_status, serial, version,
                                    build, results)
 };
@@ -36,7 +36,7 @@ struct IPV4Address {
     std::string ip, netmask;
     unsigned int cidr_netmask{};
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(IPV4Address, ip, netmask, cidr_netmask);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(IPV4Address, ip, netmask, cidr_netmask);
 };
 
 struct SystemInterface {
@@ -68,18 +68,18 @@ struct PhysicalInterface {
 
 struct VirtualWANLink {
     std::string name, vdom, status, type, link, icon;
-    bool is_sdwan_zone, valid_in_policy;
+    bool is_sdwan_zone{}, valid_in_policy{};
     std::vector<std::string> members{};
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(VirtualWANLink, name, vdom, status, type, link, icon, is_sdwan_zone,
-                                   valid_in_policy, members);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(VirtualWANLink, name, vdom, status, type, link, icon, is_sdwan_zone,
+                                                valid_in_policy, members);
 };
 
 struct InterfacesGeneralResponse : public SystemResponse {
     std::vector<nlohmann::json> results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(InterfacesGeneralResponse, build, http_method, revision, vdom, path,
-                                   name, action, status, serial, version, results);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(InterfacesGeneralResponse, build, http_method, revision, vdom, path,
+                                                name, action, status, serial, version, results);
 };
 
 class System {
