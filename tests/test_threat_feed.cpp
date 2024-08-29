@@ -4,3 +4,8 @@
 
 #include <gtest/gtest.h>
 #include "include/forti_api/threat_feed.hpp"
+
+TEST(TestThreatFeed, TestGetAllFeeds) {
+    auto feeds = ThreatFeed::get();
+    ASSERT_TRUE(!feeds.empty());
+}

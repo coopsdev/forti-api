@@ -58,7 +58,7 @@ struct DnsFilterResponse : public Response {
 };
 
 class DNSFilter {
-    inline static std::string api_endpoint = std::format("{}/cmdb/dnsfilter/profile", API::base_api_endpoint);
+    inline static std::string api_endpoint = "/cmdb/dnsfilter/profile";
 
 public:
     static void set_filter(const std::string& feed,

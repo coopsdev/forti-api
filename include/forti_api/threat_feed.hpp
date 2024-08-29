@@ -16,8 +16,8 @@ struct ThreatFeedType {
     std::string name, status, type, update_method, server_identity_check, comments;
     unsigned int category{};
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ThreatFeedType, name, status, type, update_method,
-                                   server_identity_check, category, comments)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(ThreatFeedType, name, status, type, update_method,
+                                                server_identity_check, category, comments)
 };
 
 struct ExternalResourcesResponse : public Response {
@@ -75,10 +75,8 @@ struct CommandsRequest {
 class ThreatFeed {
     inline static std::string command = "snapshot";
     inline static std::string comment = "This threat feed is automatically managed by forti-api";
-    inline static std::string external_resource =
-            std::format("{}/cmdb/system/external-resource", API::base_api_endpoint);
-    inline static std::string external_resource_monitor =
-            std::format("{}/monitor/system/external-resource/dynamic", API::base_api_endpoint);
+    inline static std::string external_resource = "/cmdb/system/external-resource";
+    inline static std::string external_resource_monitor = "/monitor/system/external-resource/dynamic";
     inline static std::string external_resource_entry_list =
             std::format("{}/entry-list?include_notes=true&vdom=root&mkey=", external_resource);
 

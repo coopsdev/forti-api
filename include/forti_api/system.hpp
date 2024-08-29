@@ -149,7 +149,7 @@ public:
     }
 
     static std::string get_wan_ip(unsigned int wan_port = 1, const std::string& vdom = "root") {
-        return trim(get_physical_interface(std::format("wan{}", wan_port), vdom).ipv4_addresses[0].ip);
+        return get_physical_interface(std::format("wan{}", wan_port), vdom).ipv4_addresses[0].ip;
     }
 };
 

@@ -13,18 +13,12 @@
 #include <algorithm>
 #include <cctype>
 
-inline static std::string trim(const std::string& str) {
-    auto front = std::find_if_not(str.begin(), str.end(), ::isspace);
-    auto back = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
-    return (front < back ? std::string(front, back) : std::string());
-}
-
 struct Response {
     unsigned int size{}, matched_count{}, next_idx{}, http_status{}, build{};
     std::string http_method, revision, vdom, path, name, status, serial, version;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Response, http_method, size, matched_count, next_idx, revision,
-                                   vdom, path, name, status, http_status, serial, version, build)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Response, http_method, size, matched_count, next_idx, revision,
+                                                vdom, path, name, status, http_status, serial, version, build)
 };
 
 class Auth {
@@ -51,6 +45,11 @@ public:
 };
 
 class API {
+    inline static Auth& auth = Auth::getInstance();
+    inline static std::string base_api_endpoint = std::format("https://{}:{}/api/v2",
+                                                              std::getenv("FORTIGATE_GATEWAY_IP"),
+                                                              std::getenv("FORTIGATE_ADMIN_SSH_PORT"));
+
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
         ((std::string*)userp)->append((char*)contents, size * nmemb);
         return size * nmemb;
@@ -93,11 +92,6 @@ class API {
     }
 
 public:
-    inline static Auth& auth = Auth::getInstance();
-    inline static std::string base_api_endpoint = std::format("https://{}:{}/api/v2",
-                                                              std::getenv("FORTIGATE_GATEWAY_IP"),
-                                                              std::getenv("FORTIGATE_ADMIN_SSH_PORT"));
-
     template<typename T>
     static T get(const std::string &path) { return request<T>("GET", path); }
 
