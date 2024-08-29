@@ -2,7 +2,7 @@
 
 **Advanced FortiOS API Management**
 
-Welcome to **forti-api**, the sophisticated FortiOS v7.2.8 API wrapper developed on the C++23 standard. This project is meticulously designed to facilitate secure and efficient management of network security services using FortiGate technologies.
+Welcome to **forti-api**, a FortiOS api v2 API wrapper developed on the C++23 standard for FortiGate firewalls. This project is designed to facilitate secure and efficient management of network security services using FortiGate technologies.
 
 **Project Overview:**
 - **Current Phase:** I am currently transitioning the library from Python to C++23 to enhance its robustness and type safety.
