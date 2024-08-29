@@ -48,7 +48,7 @@ jobs:
 
       - name: Create Package
         run: |
-          cd /home/gh-runner/actions-runner/_work/forti_api/forti_api
+          cd /home/gh-runner/actions-runner/_work/forti-api/forti-api
           conan create . -pr:a vps-release --build=missing -u
 
       - name: Upload Packages to Artifactory
