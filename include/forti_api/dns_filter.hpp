@@ -118,26 +118,26 @@ class DNSFilter {
 public:
     static void update(const DNSProfile& profile) {
         if (!contains(profile.name)) throw std::runtime_error("Can't update non-existent DNS Profile");
-        API::put(std::format("{}/{}", api_endpoint, profile.name), profile);
+        FortiAPI::put(std::format("{}/{}", api_endpoint, profile.name), profile);
     }
 
-    static void add(const std::string& name) { API::post(api_endpoint, DNSProfile(name)); }
+    static void add(const std::string& name) { FortiAPI::post(api_endpoint, DNSProfile(name)); }
 
     static void del(const std::string& name) {
         if (!contains(name)) throw std::runtime_error("Can't delete non-existent item: " + name);
-        else API::del(std::format("{}/{}", api_endpoint, name));
+        else FortiAPI::del(std::format("{}/{}", api_endpoint, name));
     }
 
     static bool contains(const std::string& name) {
-        return API::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, name)).http_status == 200;
+        return FortiAPI::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, name)).http_status == 200;
     }
 
     static std::vector<DNSProfile> get() {
-        return API::get<DNSProfilesResponse>(api_endpoint).results;
+        return FortiAPI::get<DNSProfilesResponse>(api_endpoint).results;
     }
 
     static DNSProfile get(const std::string& feed) {
-        return API::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, feed)).results[0];
+        return FortiAPI::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, feed)).results[0];
     }
 };
 

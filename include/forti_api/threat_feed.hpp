@@ -9,13 +9,22 @@
 #include <cstring>
 #include <format>
 #include <nlohmann/json.hpp>
+#include <utility>
 #include <vector>
 #include "api.hpp"
 
 
 struct PushThreatFeed {
-    std::string name, status, type, update_method, server_identity_check, comments;
+    std::string name,
+                status = "enable",
+                type = "domain",
+                update_method = "push",
+                server_identity_check = "none",
+                comments = "This threat feed is automatically managed by forti-api";
     unsigned int category{};
+
+    PushThreatFeed() = default;
+    PushThreatFeed(std::string  name, unsigned int category) : name(std::move(name)), category(category) {}
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(PushThreatFeed, name, status, type, update_method,
                                                 server_identity_check, category, comments)
@@ -61,8 +70,11 @@ struct ExternalResourceEntryListResponse : public Response {
 };
 
 struct CommandEntry {
-    std::string name, command;
+    std::string name, command = "snapshot";
     std::vector<std::string> entries;
+
+    CommandEntry() = default;
+    CommandEntry(std::string name, const std::vector<std::string>& entries) : name(name), entries(entries) {}
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(CommandEntry, name, entries, command)
 };
@@ -75,7 +87,6 @@ struct CommandsRequest {
 
 class ThreatFeed {
     inline static std::string command = "snapshot";
-    inline static std::string comment = "This threat feed is automatically managed by forti-api";
     inline static std::string external_resource = "/cmdb/system/external-resource";
     inline static std::string external_resource_monitor = "/monitor/system/external-resource/dynamic";
     inline static std::string external_resource_entry_list =
@@ -84,31 +95,31 @@ class ThreatFeed {
     static void set(const std::string& name, bool enable = true) {
         nlohmann::json j;
         j["status"] = enable ? "enable" : "disable";
-        API::post(std::format("{}/{}", external_resource, name), j);
+        FortiAPI::post(std::format("{}/{}", external_resource, name), j);
     }
 
 public:
     static void update_info(const std::string& name, const nlohmann::json& data) {
-        API::post(std::format("{}/{}", external_resource_monitor, name), data);
+        FortiAPI::post(std::format("{}/{}", external_resource_monitor, name), data);
     }
 
-    static void update_feed(const nlohmann::json& data) { API::post(external_resource_monitor, data); }
+    static void update_feed(const nlohmann::json& data) { FortiAPI::post(external_resource_monitor, data); }
 
     static std::vector<PushThreatFeed> get() {
-        return API::get<ExternalResourcesResponse>(external_resource).results;
+        return FortiAPI::get<ExternalResourcesResponse>(external_resource).results;
     }
 
     static PushThreatFeed get(const std::string& query) {
-        return API::get<ExternalResourcesResponse>(std::format("{}/{}", external_resource, query)).results[0];
+        return FortiAPI::get<ExternalResourcesResponse>(std::format("{}/{}", external_resource, query)).results[0];
     }
 
     static std::vector<Entry> get_entry_list(const std::string& feed) {
-        return API::get<ExternalResourceEntryListResponse>
+        return FortiAPI::get<ExternalResourceEntryListResponse>
                 (std::format("{}/{}", external_resource_entry_list, feed)).results.entries;
     }
 
     static bool contains(const std::string& name) {
-        return API::get<ExternalResourcesResponse>(std::format("{}/{}", external_resource, name)).http_status == 200;
+        return FortiAPI::get<ExternalResourcesResponse>(std::format("{}/{}", external_resource, name)).http_status == 200;
     }
 
     static void enable(const std::string& name) { set(name, true); }
@@ -116,23 +127,13 @@ public:
     static void disable(const std::string& name) { set(name, false); }
 
     static void add(const std::string& name, unsigned int category) {
-        PushThreatFeed threat_feed(name, "enable", "domain", "push", "none", comment, category);
-        API::post(external_resource, threat_feed);
+        PushThreatFeed threat_feed(name, category);
+        FortiAPI::post(external_resource, threat_feed);
     }
 
     static void del(const std::string& name) {
-        if (contains(name)) API::del(std::format("{}/{}", external_resource, name));
+        if (contains(name)) FortiAPI::del(std::format("{}/{}", external_resource, name));
         else std::cerr << "Couldn't locate threat feed for deletion: " << name << std::endl;
-    }
-
-    static void delete_auto_generated_feeds() {
-        auto feeds = get();
-        std::reverse(feeds.begin(), feeds.end());
-        for (const auto& feed : feeds) {
-            if (feed.comments == comment) {
-                del(feed.name);
-            }
-        }
     }
 };
 

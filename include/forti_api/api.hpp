@@ -66,15 +66,15 @@ inline static nlohmann::json convert_keys_to_underscores(const nlohmann::json& j
 }
 
 
-class Auth {
+class FortiAuth {
     std::string ca_cert_path, ssl_cert_path, cert_password, api_key, auth_header;
 
-    friend class API;
+    friend class FortiAPI;
 
-    Auth() : ca_cert_path(std::getenv("PATH_TO_FORTIGATE_CA_CERT")),
-             ssl_cert_path(std::getenv("PATH_TO_FORTIGATE_SSL_CERT")),
-             cert_password(std::getenv("FORTIGATE_SSL_CERT_PASS")),
-             api_key(std::getenv("FORTIGATE_API_KEY")) {
+    FortiAuth() : ca_cert_path(std::getenv("PATH_TO_FORTIGATE_CA_CERT")),
+                  ssl_cert_path(std::getenv("PATH_TO_FORTIGATE_SSL_CERT")),
+                  cert_password(std::getenv("FORTIGATE_SSL_CERT_PASS")),
+                  api_key(std::getenv("FORTIGATE_API_KEY")) {
         auth_header = std::format("Authorization: Bearer {}", api_key);
         assert_necessary_fields_exist();
     }
@@ -88,17 +88,17 @@ class Auth {
     }
 
 public:
-    static Auth& getInstance() {
-        static Auth instance;
+    static FortiAuth& getInstance() {
+        static FortiAuth instance;
         return instance;
     }
 
-    Auth(const Auth&) = delete;
-    void operator=(const Auth&) = delete;
+    FortiAuth(const FortiAuth&) = delete;
+    void operator=(const FortiAuth&) = delete;
 };
 
-class API {
-    inline static Auth& auth = Auth::getInstance();
+class FortiAPI {
+    inline static FortiAuth& auth = FortiAuth::getInstance();
     inline static std::string base_api_endpoint = std::format("https://{}:{}/api/v2",
                                                               std::getenv("FORTIGATE_GATEWAY_IP"),
                                                               std::getenv("FORTIGATE_ADMIN_SSH_PORT"));

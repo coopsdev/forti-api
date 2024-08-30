@@ -96,7 +96,7 @@ class System {
         hard_switch_vlan_interfaces.clear();
         aggregate_interfaces.clear();
 
-        auto interfaces = API::get<InterfacesGeneralResponse>(available_interfaces_endpoint);
+        auto interfaces = FortiAPI::get<InterfacesGeneralResponse>(available_interfaces_endpoint);
         for (const auto& interface : interfaces.results) {
             if (!interface.contains("type")) continue;
             auto type = interface["type"].get<std::string>();
@@ -109,14 +109,14 @@ class System {
     }
 
     static unsigned int count_interfaces() {
-        return API::get<GeneralResponse>(available_interfaces_endpoint).results.size();
+        return FortiAPI::get<GeneralResponse>(available_interfaces_endpoint).results.size();
     }
 
     static nlohmann::json get(const std::string& name, const std::string& vdom = "root") {
         std::string endpoint =
                 std::format("{}?vdom={}&mkey={}", available_interfaces_endpoint, vdom, name);
 
-        return API::get<std::vector<nlohmann::json>>(endpoint)[0];
+        return FortiAPI::get<std::vector<nlohmann::json>>(endpoint)[0];
     }
 
     static SystemInterface get(const std::vector<SystemInterface>& interfaces,
