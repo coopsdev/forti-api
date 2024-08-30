@@ -5,7 +5,7 @@
 #ifndef FORTI_API_DNS_FILTER_HPP
 #define FORTI_API_DNS_FILTER_HPP
 
-#include <cstring>
+#include <string>
 #include <format>
 #include <nlohmann/json.hpp>
 #include <utility>

@@ -80,11 +80,36 @@ class FortiAuth {
     }
 
     void assert_necessary_fields_exist() {
-        assert(!ca_cert_path.empty());
-        assert(!ssl_cert_path.empty());
-        assert(!cert_password.empty());
-        assert(!api_key.empty());
-        assert(!auth_header.empty());
+        bool all_fields_present = true;
+
+        if (ca_cert_path.empty()) {
+            std::cerr << "[DEBUG] Missing required field: 'CA_CERT_PATH'. Please set this in your .env file.\n";
+            all_fields_present = false;
+        }
+        if (ssl_cert_path.empty()) {
+            std::cerr << "[DEBUG] Missing required field: 'SSL_CERT_PATH'. Please set this in your .env file.\n";
+            all_fields_present = false;
+        }
+        if (cert_password.empty()) {
+            std::cerr << "[DEBUG] Missing required field: 'CERT_PASSWORD'. Please set this in your .env file.\n";
+            all_fields_present = false;
+        }
+        if (api_key.empty()) {
+            std::cerr << "[DEBUG] Missing required field: 'API_KEY'. Please set this in your .env file.\n";
+            all_fields_present = false;
+        }
+        if (auth_header.empty()) {
+            std::cerr << "[DEBUG] Missing required field: 'AUTH_HEADER'. Please set this in your .env file.\n";
+            all_fields_present = false;
+        }
+
+        if (!all_fields_present) {
+            std::cerr << "[INFO] One or more required fields are missing. Please check your .env file and add the necessary variables.\n";
+            std::cerr << "[INFO] Refer to .env.example for guidance on setting up the required environment variables.\n";
+            throw std::runtime_error("Please view debug info for more information...");
+        } else {
+            std::cout << "[INFO] All necessary fields are present. Continuing execution.\n";
+        }
     }
 
 public:

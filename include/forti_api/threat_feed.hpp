@@ -74,7 +74,7 @@ struct CommandEntry {
     std::vector<std::string> entries;
 
     CommandEntry() = default;
-    CommandEntry(std::string name, const std::vector<std::string>& entries) : name(name), entries(entries) {}
+    CommandEntry(std::string name, const std::vector<std::string>& entries) : name(std::move(name)), entries(entries) {}
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(CommandEntry, name, entries, command)
 };
