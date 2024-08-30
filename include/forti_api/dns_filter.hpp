@@ -89,7 +89,7 @@ struct DNSProfile {
     void block_category(unsigned int category) { ftgd_dns.block(category); }
     void allow_category(unsigned int category) { ftgd_dns.allow(category); }
     void monitor_category(unsigned int category) { ftgd_dns.monitor(category); }
-    bool contains_category(unsigned int category) { ftgd_dns.contains(category); }
+    bool contains_category(unsigned int category) { return ftgd_dns.contains(category); }
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DNSProfile, name, q_origin_key, comment, sdns_ftgd_err_log,
                                                 sdns_domain_log, block_action, redirect_portal, redirect_portal6,
