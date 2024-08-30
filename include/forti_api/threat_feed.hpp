@@ -132,8 +132,10 @@ public:
     }
 
     static void del(const std::string& name) {
-        if (contains(name)) FortiAPI::del(std::format("{}/{}", external_resource, name));
-        else std::cerr << "Couldn't locate threat feed for deletion: " << name << std::endl;
+        if (contains(name)) {
+            DNSFilter::global_allow_category(get(name).category);
+            FortiAPI::del(std::format("{}/{}", external_resource, name));
+        } else std::cerr << "Couldn't locate threat feed for deletion: " << name << std::endl;
     }
 };
 

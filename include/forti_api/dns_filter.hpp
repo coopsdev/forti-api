@@ -41,6 +41,8 @@ struct DNSFilterOptions {
         return std::make_pair(false, start);
     }
 
+    bool contains(unsigned int category) { return binary_search(category).first; }
+
     void block(unsigned int category) {
         const auto& [match_found, index] = binary_search(category);
         if (match_found) filters[index].action = "block";
@@ -87,6 +89,7 @@ struct DNSProfile {
     void block_category(unsigned int category) { ftgd_dns.block(category); }
     void allow_category(unsigned int category) { ftgd_dns.allow(category); }
     void monitor_category(unsigned int category) { ftgd_dns.monitor(category); }
+    bool contains_category(unsigned int category) { ftgd_dns.contains(category); }
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DNSProfile, name, q_origin_key, comment, sdns_ftgd_err_log,
                                                 sdns_domain_log, block_action, redirect_portal, redirect_portal6,
@@ -138,6 +141,10 @@ public:
 
     static DNSProfile get(const std::string& feed) {
         return FortiAPI::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, feed)).results[0];
+    }
+
+    static void global_allow_category(unsigned int category) {
+        for (auto& p : get()) if (p.contains_category(category)) p.allow_category(category);
     }
 };
 
