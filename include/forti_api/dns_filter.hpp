@@ -144,7 +144,22 @@ public:
     }
 
     static void global_allow_category(unsigned int category) {
-        for (auto& p : get()) if (p.contains_category(category)) p.allow_category(category);
+        for (auto& profile : get()) {
+            if (profile.contains_category(category)) {
+                profile.allow_category(category);
+                update(profile);
+            }
+        }
+    }
+
+    static void block_category_in_profile(const std::string& profile_name, unsigned int category) {
+        auto profile = get(profile_name);
+        profile.block_category(category);
+        update(profile);
+    }
+
+    static void block_category_in_profiles(const std::vector<std::string>& profiles, unsigned int category) {
+        for (const auto& name : profiles) block_category_in_profile(name, category);
     }
 };
 
