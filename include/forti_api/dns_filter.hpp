@@ -8,117 +8,136 @@
 #include <cstring>
 #include <format>
 #include <nlohmann/json.hpp>
+#include <utility>
 #include "api.hpp"
 
 
 struct Filter {
-    unsigned int id{}, q_origin_key{}, category{};
-    std::string action, log;
+    unsigned int id = 0, q_origin_key = 0, category{};
+    std::string action, log = "enable";
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Filter, id, category, action, log)
+    Filter() = default;
+    explicit Filter(unsigned int category, std::string  action = "allow") :
+            category(category), action(std::move(action)) {}
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Filter, id, q_origin_key, category, action, log)
 };
 
-struct DnsProfile {
+struct DNSFilterOptions {
     std::string options;
     std::vector<Filter> filters;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsProfile, options, filters)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DNSFilterOptions, options, filters)
+
+    std::pair<bool, unsigned int> binary_search(unsigned int category) {
+        unsigned int start = 0, end = filters.size();
+        while (start != end) {
+            unsigned int mid = start + (end - start) / 2;
+            auto cat = filters[mid].category;
+            if (cat == category) return std::make_pair(true, mid);
+            else if (cat < category) start = mid + 1;
+            else end = mid;
+        }
+        return std::make_pair(false, start);
+    }
+
+    void block(unsigned int category) {
+        const auto& [match_found, index] = binary_search(category);
+        if (match_found) filters[index].action = "block";
+        else filters.emplace_back(category, "block");
+    }
+
+    void allow(unsigned int category) {
+        const auto& [match_found, index] = binary_search(category);
+        if (match_found) filters[index].action = "allow";
+    }
+
+    void monitor(unsigned int category) {
+        const auto& [match_found, index] = binary_search(category);
+        if (match_found) filters[index].action = "monitor";
+        else filters.emplace_back(category, "monitor");
+    }
 };
 
-struct DnsFilter {
-    std::string name, q_origin_key, comment;
-    std::vector<std::string> domain_filter;
-    DnsProfile ftgd_dns;
+struct DomainFilter {
+    unsigned int domain_filter_table = 2;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsFilter, name, q_origin_key, comment, domain_filter, ftgd_dns)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DomainFilter, domain_filter_table)
 };
 
-struct DnsProfileResponse : public Response {
-    DnsProfile results;
+struct DNSProfile {
+    std::string name, q_origin_key,
+                comment = "Automatically managed with forti_api",
+                log_all_domain = "disable",
+                sdns_ftgd_err_log = "enable",
+                sdns_domain_log = "enable",
+                block_action = "redirect",
+                redirect_portal = "0.0.0.0",
+                redirect_portal6 = "::",
+                block_botnet = "disable",
+                safe_search = "disable",
+                youtube_restrict = "strict";
+    DomainFilter domain_filter{};
+    std::vector<std::string> external_ip_blocklist{}, dns_translation{};
+    DNSFilterOptions ftgd_dns{};
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsProfileResponse, http_method, size, matched_count, next_idx,
-                                   revision, vdom, path, name, status, http_status, serial, version,
-                                   build, results)
+    DNSProfile() = default;
+    explicit DNSProfile(const std::string& name) : name(name), q_origin_key(name) {}
+
+    void block_category(unsigned int category) { ftgd_dns.block(category); }
+    void allow_category(unsigned int category) { ftgd_dns.allow(category); }
+    void monitor_category(unsigned int category) { ftgd_dns.monitor(category); }
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DNSProfile, name, q_origin_key, comment, sdns_ftgd_err_log,
+                                                sdns_domain_log, block_action, redirect_portal, redirect_portal6,
+                                                block_botnet, safe_search, youtube_restrict, log_all_domain,
+                                                domain_filter, external_ip_blocklist, dns_translation, ftgd_dns)
 };
 
-struct DnsFiltersResponse : public Response {
-    std::vector<DnsFilter> results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsFiltersResponse, http_method, size, matched_count, next_idx,
-                                   revision, vdom, path, name, status, http_status, serial, version,
-                                   build, results)
+struct DNSFiltersResponse : public Response {
+    std::vector<DNSFilterOptions> results;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DNSFiltersResponse, http_method, size, matched_count, next_idx,
+                                                revision, vdom, path, name, status, http_status, serial, version,
+                                                build, results)
 };
 
-struct DnsFilterResponse : public Response {
-    DnsFilter results;
+struct DNSProfilesResponse : public Response {
+    std::vector<DNSProfile> results;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DnsFilterResponse, http_method, size, matched_count, next_idx,
-                                   revision, vdom, path, name, status, http_status, serial, version,
-                                   build, results)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DNSProfilesResponse, http_method, size, matched_count, next_idx,
+                                                revision, vdom, path, name, status, http_status, serial, version,
+                                                build, results)
 };
+
 
 class DNSFilter {
     inline static std::string api_endpoint = "/cmdb/dnsfilter/profile";
 
 public:
-    static void set_filter(const std::string& feed,
-                           unsigned int category,
-                           bool active = true) {
-        std::string action = active ? "block" : "allow";
-        auto query = std::format("{}/{}/ftgd-dns/", api_endpoint, feed);
-        auto response = API::get<DnsProfileResponse>(query);
-
-        if (response.http_status == 200) {
-            auto filters = response.results.filters;
-
-            std::pair<bool, unsigned int> pair = std::make_pair(false, 0);
-            for (unsigned int i = 0; i < filters.size(); ++i) {
-                if (filters[i].category == category) {
-                    pair = std::make_pair(true, i);
-                    break;
-                }
-            }
-
-            const auto& [matchFound, index] = pair;
-
-            if (matchFound) {
-                filters[index].action = action;
-                set_filters(feed, filters);
-            }
-        }
+    static void update(const DNSProfile& profile) {
+        if (!contains(profile.name)) throw std::runtime_error("Can't update non-existent DNS Profile");
+        API::put(std::format("{}/{}", api_endpoint, profile.name), profile);
     }
 
-    static void set_threat_feeds(const std::string& feed, bool active = true) {
-        std::string action = active ? "block" : "allow";
-        auto query = std::format("{}/{}/ftgd-dns/", api_endpoint, feed);
-        auto response = API::get<DnsProfileResponse>(query);
+    static void add(const std::string& name) { API::post(api_endpoint, DNSProfile(name)); }
 
-        if (response.http_status == 200) {
-            auto& filters = response.results.filters;
-
-            for (auto& filter : filters) {
-                if (filter.category >= 192 && filter.category <= 221) filter.action = action;
-            }
-
-            set_filters(feed, response.results);
-        }
+    static void del(const std::string& name) {
+        if (!contains(name)) throw std::runtime_error("Can't delete non-existent item: " + name);
+        else API::del(std::format("{}/{}", api_endpoint, name));
     }
 
-    static void set_filters(
-            const std::string& feed,
-            const nlohmann::json& filters = nlohmann::json()) {
-        auto query = std::format("{}/{}/ftgd-dns/", api_endpoint, feed);
-        auto profile = API::get<DnsProfileResponse>(query).results;
-        profile.filters = filters;
-        API::put(query, profile);
+    static bool contains(const std::string& name) {
+        return API::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, name)).http_status == 200;
     }
 
-    static std::vector<DnsFilter> get() {
-        return API::get<DnsFiltersResponse>(api_endpoint).results;
+    static std::vector<DNSProfile> get() {
+        return API::get<DNSProfilesResponse>(api_endpoint).results;
     }
 
-    static DnsFilter get(const std::string& feed) {
-        return API::get<DnsFilterResponse>(std::format("{}/{}", api_endpoint, feed)).results;
+    static DNSProfile get(const std::string& feed) {
+        return API::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, feed)).results[0];
     }
 };
 
