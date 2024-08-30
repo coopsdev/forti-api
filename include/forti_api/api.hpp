@@ -12,7 +12,6 @@
 #include <curl/curl.h>
 #include <algorithm>
 #include <cctype>
-#include "util/define_type.hpp"
 
 struct Response {
     unsigned int size{}, matched_count{}, next_idx{}, http_status{}, build{};
@@ -21,6 +20,51 @@ struct Response {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Response, http_method, size, matched_count, next_idx, revision,
                                                 vdom, path, name, status, http_status, serial, version, build)
 };
+
+inline static nlohmann::json convert_keys_to_hyphens(const nlohmann::json& j) {
+    nlohmann::json result;
+
+    for (auto it = j.begin(); it != j.end(); ++it) {
+        std::string key = it.key();
+        std::replace(key.begin(), key.end(), '_', '-');
+
+        if (it->is_object()) result[key] = convert_keys_to_hyphens(*it);
+        else if (it->is_array()) {
+            nlohmann::json array_result = nlohmann::json::array();
+            for (const auto& elem : it.value()) {
+                if (elem.is_object()) array_result.push_back(convert_keys_to_hyphens(elem));
+                else array_result.push_back(elem);
+            }
+            result[key] = array_result;
+        } else result[key] = *it;
+    }
+
+    return result;
+}
+
+inline static nlohmann::json convert_keys_to_underscores(const nlohmann::json& j) {
+    nlohmann::json result;
+
+    for (auto it = j.begin(); it != j.end(); ++it) {
+        std::string key = it.key();
+        std::replace(key.begin(), key.end(), '-', '_');
+
+        if (it->is_object()) result[key] = convert_keys_to_underscores(*it);
+        else if (it->is_array()) {
+            nlohmann::json array_result = nlohmann::json::array();
+            for (const auto& elem : it.value()) {
+                if (elem.is_object()) array_result.push_back(convert_keys_to_underscores(elem));
+                else array_result.push_back(elem);
+            }
+            result[key] = array_result;
+        } else {
+            result[key] = *it;
+        }
+    }
+
+    return result;
+}
+
 
 class Auth {
     std::string ca_cert_path, ssl_cert_path, cert_password, api_key, auth_header;
