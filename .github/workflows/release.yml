@@ -19,6 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Authenticate with Artifactory
+        run: /home/gh-runner/artiAuth.sh
+
       - name: Set PATH for pipx binaries
         run: echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
