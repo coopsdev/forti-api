@@ -5,7 +5,7 @@
 #ifndef FORTI_API_API_HPP
 #define FORTI_API_API_HPP
 
-#include <cstring>
+#include <string>
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <format>

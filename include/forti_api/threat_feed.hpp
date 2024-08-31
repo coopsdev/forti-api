@@ -6,9 +6,6 @@
 #define FORTI_API_THREAT_FEED_HPP
 
 #include "dns_filter.hpp"
-#include <cstring>
-#include <format>
-#include <nlohmann/json.hpp>
 #include <utility>
 #include <vector>
 #include "api.hpp"
