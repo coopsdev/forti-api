@@ -6,7 +6,7 @@
 #define FORTI_API_FIREWALL_HPP
 
 #include "api.hpp"
-#include "include/forti_api/types/policy.h"
+#include "include/forti_api/types/policy.hpp"
 
 namespace FortiGate {
 
