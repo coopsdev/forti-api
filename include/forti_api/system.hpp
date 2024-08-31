@@ -7,7 +7,6 @@
 
 #include "api.hpp"
 #include <string>
-#include <nlohmann/json.hpp>
 
 
 struct SystemResponse {

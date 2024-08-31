@@ -8,5 +8,6 @@
 #include "forti_api/threat_feed.hpp"
 #include "forti_api/dns_filter.hpp"
 #include "forti_api/system.hpp"
+#include "forti_api/firewall.hpp"
 
 #endif //FORTI_API_H

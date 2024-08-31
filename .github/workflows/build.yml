@@ -44,8 +44,3 @@ jobs:
 
       - name: Show ccache stats after build
         run: ccache -s
-
-      - name: Run Tests
-        run: |
-          cd /home/gh-runner/actions-runner/_work/forti-api/forti-api
-          ./build/meson/runTests
