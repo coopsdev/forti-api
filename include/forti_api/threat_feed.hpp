@@ -82,6 +82,9 @@ struct CommandEntry {
 struct CommandsRequest {
     std::vector<CommandEntry> commands;
 
+    CommandsRequest() = default;
+    CommandsRequest(const CommandEntry& initialEntry) : commands() { commands.push_back(initialEntry); }
+
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(CommandsRequest, commands)
 };
 
@@ -103,7 +106,7 @@ public:
         FortiAPI::post(std::format("{}/{}", external_resource_monitor, name), data);
     }
 
-    static void update_feed(const nlohmann::json& data) { FortiAPI::post(external_resource_monitor, data); }
+    static void update_feed(const CommandsRequest& data) { FortiAPI::post(external_resource_monitor, data); }
 
     static std::vector<PushThreatFeed> get() {
         return FortiAPI::get<ExternalResourcesResponse>(external_resource).results;
