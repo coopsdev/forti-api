@@ -71,9 +71,14 @@ struct FirewallPolicy {
             service_negate = "disable", internet_service_negate = "disable", internet_service_src_negate = "disable",
             internet_service6_negate = "disable", internet_service6_src_negate = "disable", timeout_send_rst = "disable",
             captive_portal_exempt = "disable", decrypted_traffic_mirror, dsri = "disable", radius_mac_auth_bypass = "disable",
-            delay_tcp_npu_session = "disable", vlan_filter, sgt_check = "disable", internet_service6_src = "disable";
+            delay_tcp_npu_session = "disable", vlan_filter, sgt_check = "disable", internet_service6_src = "disable",
+            dnsfilter_profile, webfilter_profile;
 
     unsigned int reputation_minimum{}, reputation_minimum6{}, vlan_cos_fwd{255}, vlan_cos_rev{255}, tcp_mss_sender{}, tcp_mss_receiver{};
+
+    void enable() { status = "enable"; }
+    void disable() { status = "disable"; }
+    void set_dns_filter(const std::string& profile_name) { dnsfilter_profile = profile_name; }
 };
 
 void to_json(nlohmann::json& j, const FirewallPolicy& p) {
@@ -213,7 +218,9 @@ void to_json(nlohmann::json& j, const FirewallPolicy& p) {
             {"reputation_minimum", p.reputation_minimum},
             {"reputation_minimum6", p.reputation_minimum6},
             {"tcp_mss_sender", p.tcp_mss_sender},
-            {"tcp_mss_receiver", p.tcp_mss_receiver}
+            {"tcp_mss_receiver", p.tcp_mss_receiver},
+            {"dnsfilter_profile", p.dnsfilter_profile},
+            {"webfilter_profile", p.webfilter_profile}
     };
 }
 
@@ -354,6 +361,8 @@ void from_json(const nlohmann::json& j, FirewallPolicy& p) {
     j.at("reputation_minimum6").get_to(p.reputation_minimum6);
     j.at("tcp_mss_sender").get_to(p.tcp_mss_sender);
     j.at("tcp_mss_receiver").get_to(p.tcp_mss_receiver);
+    j.at("dnsfilter_profile").get_to(p.dnsfilter_profile);
+    j.at("webfilter_profile").get_to(p.webfilter_profile);
 }
 
 struct FirewallPoliciesResponse : public Response {
