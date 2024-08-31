@@ -5,7 +5,7 @@
 #ifndef FORTI_API_POLICY_HPP
 #define FORTI_API_POLICY_HPP
 
-#include "include/forti_api/api.hpp"
+#include "api.hpp"
 #include <vector>
 
 template<typename T>
