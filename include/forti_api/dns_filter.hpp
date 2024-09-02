@@ -20,7 +20,11 @@ struct Filter {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Filter, id, q_origin_key, category, action, log)
 };
 
-struct CompareFilters { bool operator()(const Filter& a, const Filter& b) { return a.category < b.category; } };
+struct CompareFilters {
+    bool operator()(const Filter& a, const Filter& b) const { return a.category < b.category; }
+    bool operator()(const Filter& a, unsigned int category) const { return a.category < category; }
+    bool operator()(unsigned int category, const Filter& b) const { return category < b.category; }
+};
 
 struct DNSFilterOptions {
     std::string options;
@@ -28,46 +32,31 @@ struct DNSFilterOptions {
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DNSFilterOptions, options, filters)
 
-    std::pair<bool, unsigned int> binary_search(unsigned int category) {
-        unsigned int start = 0, end = filters.size();
-        while (start != end) {
-            unsigned int mid = start + (end - start) / 2;
-            auto cat = filters[mid].category;
-            if (cat == category) return std::make_pair(true, mid);
-            else if (cat < category) start = mid + 1;
-            else end = mid;
+    std::pair<bool, unsigned int> find_category(unsigned int category) {
+        auto it = std::lower_bound(filters.begin(), filters.end(), category, CompareFilters());
+        if (it != filters.end() && it->category == category) {
+            return std::make_pair(true, std::distance(filters.begin(), it));
         }
-        return std::make_pair(false, start);
+        return std::make_pair(false, std::distance(filters.begin(), it));
     }
 
-    bool contains(unsigned int category) { return binary_search(category).first; }
+    bool contains(unsigned int category) { return find_category(category).first; }
 
     void block(unsigned int category) {
-        const auto& [match_found, index] = binary_search(category);
+        const auto& [match_found, index] = find_category(category);
         if (match_found) filters[index].action = "block";
-        else filters.emplace_back(category, "block");
+        else filters.emplace(filters.begin() + index, category, "block");
     }
 
     void allow(unsigned int category) {
-        const auto& [match_found, index] = binary_search(category);
-        if (match_found) {
-            if (index == filters.size() - 1) filters.resize(filters.size() - 1);
-            else {
-                std::vector<Filter> new_filters(filters.size() - 1);
-                if (index == 0) std::move(filters.begin() + 1, filters.end(), new_filters.begin());
-                else {
-                    std::move(filters.begin(), filters.begin() + index, new_filters.begin());
-                    std::move(filters.begin() + index + 1, filters.end(), new_filters.begin() + index);
-                }
-                filters = new_filters;
-            }
-        }
+        const auto& [match_found, index] = find_category(category);
+        if (match_found) filters.erase(filters.begin() + index);
     }
 
     void monitor(unsigned int category) {
-        const auto& [match_found, index] = binary_search(category);
+        const auto& [match_found, index] = find_category(category);
         if (match_found) filters[index].action = "monitor";
-        else filters.emplace_back(category, "monitor");
+        else filters.emplace(filters.begin() + index, category, "monitor");
     }
 
     void sort_filters() { std::sort(filters.begin(), filters.end(), CompareFilters()); }
