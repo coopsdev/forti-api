@@ -213,8 +213,7 @@ class FortiAPI {
 
     static Response validate(const std::string &method, const std::string &path, const nlohmann::json &data = {}) {
         auto response = request<Response>(method, path, data);
-        if (response.status != "success") std::cerr << "Post response: { http_status " << response.http_status
-                                                    << ", status: " << response.status << " }" << std::endl;
+        if (response.status != "success") std::cerr << nlohmann::json(response).dump(4) << std::endl;
         return response;
     }
 
