@@ -51,14 +51,16 @@ struct DNSFilterOptions {
     void allow(unsigned int category) {
         const auto& [match_found, index] = binary_search(category);
         if (match_found) {
-            std::vector<Filter> new_filters(filters.size() - 1);
             if (index == filters.size() - 1) filters.resize(filters.size() - 1);
-            else if (index == 0) std::move(filters.begin() + 1, filters.end(), new_filters.begin());
             else {
-                std::move(filters.begin(), filters.begin() + index, new_filters.begin());
-                std::move(filters.begin() + index + 1, filters.end(), new_filters.begin() + index);
+                std::vector<Filter> new_filters(filters.size() - 1);
+                if (index == 0) std::move(filters.begin() + 1, filters.end(), new_filters.begin());
+                else {
+                    std::move(filters.begin(), filters.begin() + index, new_filters.begin());
+                    std::move(filters.begin() + index + 1, filters.end(), new_filters.begin() + index);
+                }
+                filters = new_filters;
             }
-            filters = new_filters;
         }
     }
 
