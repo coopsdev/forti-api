@@ -135,9 +135,7 @@ public:
         if (contains(name)) {
             auto category = get(name).category;
             DNSFilter::global_allow_category(category);
-            for (const auto& feed : get()) {
-                if (feed.category == category) FortiAPI::del(std::format("{}/{}", external_resource, feed.name));
-            }
+            FortiAPI::del(std::format("{}/{}", external_resource, name));
         } else std::cerr << "Couldn't locate threat feed for deletion: " << name << std::endl;
     }
 
