@@ -20,6 +20,8 @@ struct Filter {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Filter, id, q_origin_key, category, action, log)
 };
 
+struct CompareFilters { bool operator()(const Filter& a, const Filter& b) { return a.category < b.category; } };
+
 struct DNSFilterOptions {
     std::string options;
     std::vector<Filter> filters;
@@ -65,6 +67,8 @@ struct DNSFilterOptions {
         if (match_found) filters[index].action = "monitor";
         else filters.emplace_back(category, "monitor");
     }
+
+    void sort_filters() { std::sort(filters.begin(), filters.end(), CompareFilters()); }
 };
 
 struct DomainFilter {
@@ -125,8 +129,9 @@ class DNSFilter {
     inline static std::string api_endpoint = "/cmdb/dnsfilter/profile";
 
 public:
-    static void update(const DNSProfile& profile) {
+    static void update(DNSProfile& profile) {
         if (!contains(profile.name)) throw std::runtime_error("Can't update non-existent DNS Profile");
+        profile.ftgd_dns.sort_filters();
         FortiAPI::put(std::format("{}/{}", api_endpoint, profile.name), profile);
     }
 
