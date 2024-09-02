@@ -120,9 +120,8 @@ class DNSFilter {
     inline static std::string api_endpoint = "/cmdb/dnsfilter/profile";
 
 public:
-    static void update(DNSProfile& profile) {
+    static void update(const DNSProfile& profile) {
         if (!contains(profile.name)) throw std::runtime_error("Can't update non-existent DNS Profile");
-        profile.ftgd_dns.sort_filters();
         FortiAPI::put(std::format("{}/{}", api_endpoint, profile.name), profile);
     }
 
