@@ -133,9 +133,19 @@ public:
 
     static void del(const std::string& name) {
         if (contains(name)) {
-            DNSFilter::global_allow_category(get(name).category);
-            FortiAPI::del(std::format("{}/{}", external_resource, name));
+            auto category = get(name).category;
+            DNSFilter::global_allow_category(category);
+            for (const auto& feed : get()) {
+                if (feed.category == category) FortiAPI::del(std::format("{}/{}", external_resource, feed.name));
+            }
         } else std::cerr << "Couldn't locate threat feed for deletion: " << name << std::endl;
+    }
+
+    static void del(unsigned int category) {
+        DNSFilter::global_allow_category(category);
+        for (const auto& feed : get()) {
+            if (feed.category == category) FortiAPI::del(std::format("{}/{}", external_resource, feed.name));
+        }
     }
 };
 

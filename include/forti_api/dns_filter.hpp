@@ -142,10 +142,8 @@ public:
 
     static void global_allow_category(unsigned int category) {
         for (auto& profile : get()) {
-            if (profile.contains_category(category)) {
-                profile.allow_category(category);
-                update(profile);
-            }
+            profile.allow_category(category);
+            update(profile);
         }
     }
 
