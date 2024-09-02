@@ -211,13 +211,20 @@ class FortiAPI {
         return convert_keys_to_underscores(nlohmann::json::parse(readBuffer));
     }
 
+    static Response validate(const std::string &method, const std::string &path, const nlohmann::json &data = {}) {
+        auto response = request<Response>(method, path, data);
+        if (response.http_status != 200) std::cerr << "Post response: { http_status " << response.http_status
+                                                   << ", status: " << response.status << " }" << std::endl;
+        return response;
+    }
+
 public:
     template<typename T>
     static T get(const std::string &path) { return request<T>("GET", path); }
 
-    static void post(const std::string &path, const nlohmann::json &data) { request<Response>("POST", path, data); }
-    static void put(const std::string &path, const nlohmann::json &data) { request<Response>("PUT", path, data); }
-    static void del(const std::string &path) { request<Response>("DELETE", path); }
+    static Response post(const std::string &path, const nlohmann::json &data) { return validate("POST", path, data); }
+    static Response put(const std::string &path, const nlohmann::json &data) { return validate("PUT", path, data); }
+    static Response del(const std::string &path) { return validate("DELETE", path); }
 };
 
 #endif //FORTI_API_API_HPP
