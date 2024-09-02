@@ -22,7 +22,7 @@ struct Service : public Module {
 };
 
 struct FirewallPolicy {
-    unsigned int policyid, q_origin_key, uuid_idx;
+    unsigned int policyid{}, q_origin_key{}, uuid_idx{};
     std::vector<Interface> srcintf, dstintf;
     std::vector<Address> srcaddr, dstaddr;
     std::vector<Service> service;

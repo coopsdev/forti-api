@@ -24,8 +24,22 @@ struct Response {
 inline static nlohmann::json convert_keys_to_hyphens(const nlohmann::json& j) {
     nlohmann::json result;
 
+    std::array<std::string, 10> ignore_keys{
+        "q_origin_key"
+    };
+
     for (auto it = j.begin(); it != j.end(); ++it) {
         std::string key = it.key();
+
+        bool should_process = true;
+        for (const auto& ignore : ignore_keys) {
+            if (key == ignore) {
+                should_process = false;
+                break;
+            }
+        }
+        if (!should_process) continue;
+
         std::replace(key.begin(), key.end(), '_', '-');
 
         if (it->is_object()) result[key] = convert_keys_to_hyphens(*it);
