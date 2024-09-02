@@ -42,3 +42,7 @@ TEST(TestDNSFilter, TestToggleFilters) {
     DNSFilter::del(profile.name);
     ASSERT_FALSE(DNSFilter::contains(profile.name));
 }
+
+TEST(TestDNSFilter, TestContains192) {
+    ASSERT_TRUE(DNSFilter::get("advanced").ftgd_dns.contains(193));
+}

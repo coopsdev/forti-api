@@ -137,11 +137,15 @@ public:
     }
 
     static std::vector<DNSProfile> get() {
-        return FortiAPI::get<DNSProfilesResponse>(api_endpoint).results;
+        auto results = FortiAPI::get<DNSProfilesResponse>(api_endpoint).results;
+        for (auto& profile : results) profile.ftgd_dns.sort_filters();
+        return results;
     }
 
     static DNSProfile get(const std::string& feed) {
-        return FortiAPI::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, feed)).results[0];
+        auto result = FortiAPI::get<DNSProfilesResponse>(std::format("{}/{}", api_endpoint, feed)).results[0];
+        result.ftgd_dns.sort_filters();
+        return result;
     }
 
     static void global_allow_category(unsigned int category) {
