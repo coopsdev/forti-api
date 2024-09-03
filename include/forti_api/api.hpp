@@ -81,14 +81,31 @@ inline static nlohmann::json convert_keys_to_underscores(const nlohmann::json& j
 
 
 class FortiAuth {
-    std::string ca_cert_path, ssl_cert_path, cert_password, api_key, auth_header;
+    unsigned int admin_ssh_port;
+    std::string gateway_ip, ca_cert_path, ssl_cert_path, cert_password, api_key, auth_header;
 
     friend class FortiAPI;
 
-    FortiAuth() : ca_cert_path(std::getenv("PATH_TO_FORTIGATE_CA_CERT")),
+    FortiAuth() : admin_ssh_port(std::stoi(std::getenv("FORTIGATE_ADMIN_SSH_PORT"))),
+                  gateway_ip(std::getenv("FORTIGATE_GATEWAY_IP")),
+                  ca_cert_path(std::getenv("PATH_TO_FORTIGATE_CA_CERT")),
                   ssl_cert_path(std::getenv("PATH_TO_FORTIGATE_SSL_CERT")),
                   cert_password(std::getenv("FORTIGATE_SSL_CERT_PASS")),
                   api_key(std::getenv("FORTIGATE_API_KEY")) {
+        auth_header = std::format("Authorization: Bearer {}", api_key);
+        assert_necessary_fields_exist();
+    }
+
+    FortiAuth(unsigned int admin_ssh_port,
+              const std::string& gateway_ip,
+              const std::string& ca_cert_path,
+              const std::string& ssl_cert_path) :
+              admin_ssh_port(admin_ssh_port),
+              gateway_ip(gateway_ip),
+              ca_cert_path(ca_cert_path),
+              ssl_cert_path(ssl_cert_path),
+              cert_password(std::getenv("FORTIGATE_SSL_CERT_PASS")),
+              api_key(std::getenv("FORTIGATE_API_KEY")) {
         auth_header = std::format("Authorization: Bearer {}", api_key);
         assert_necessary_fields_exist();
     }
