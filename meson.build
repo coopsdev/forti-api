@@ -19,7 +19,7 @@ endforeach
 if get_option('buildtype') == 'debug'
     test('runTests', executable('runTests', test_sources, dependencies: test_deps))
 
-    executable('forti_api', 'main.cpp',
+    executable('forti-api', 'main.cpp',
                dependencies: global_deps,
                include_directories: 'include',
                install: false

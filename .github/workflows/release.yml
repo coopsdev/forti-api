@@ -56,4 +56,4 @@ jobs:
 
       - name: Upload Packages to Artifactory
         run: |
-          conan upload "*" -r vps-local --confirm
+          conan upload "*" -r fortigate --confirm
