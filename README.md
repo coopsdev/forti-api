@@ -4,6 +4,8 @@
 
 Welcome to Forti-API, an open-source project crafted to simplify and enhance your interaction with FortiGate's powerful APIs. Designed with network security professionals in mind, Forti-API transforms complex API tasks into streamlined operations, empowering you to unlock the full potential of your FortiGate systems.
 
+*Documentation coming soon...*
+
 ## 🌟 **Early Access** 🌟
 
 Get started with **Forti-API** effortlessly using Conan for dependency management. Whether you're using **Meson** or **CMake**, integrating Forti-API into your project is straightforward!
@@ -92,24 +94,21 @@ With tools like **forti-hole** and **forti2ban**, **forti-api** integrates Pi-ho
 
 ## Engagement and Contributions
 
-
 ### Open to Collaboration
 
-**forti-api** is a community-driven project, but contributing comes with important responsibilities:
+**Forti-API** is a community-driven project, but contributing comes with important responsibilities:
 
 - **Physical Device or FortiVM Requirement**: Contributors must own either a physical FortiGate device or a FortiVM subscription. FortiVM users, given the significant investment (approximately 10 times the cost of a 1-year UTM subscription on a physical FortiGate or the initial base price of hardware), are highly valued. If you're a FortiVM user, consider this your red carpet invitation—you're a big fish in a small market.
 
-- **Rigorous Pull Request Process**: All pull requests will undergo thorough scrutiny. Whether you’re testing on a physical device or a FortiVM, your contributions will be subject to rigorous code reviews. Tests will be meticulously vetted for any potential harm before they reach my personal testing environment, ensuring that no changes will compromise the integrity of users' FortiGate setups.
+- **Rigorous Pull Request Process**: All pull requests undergo thorough scrutiny. Whether you’re testing on a physical device or a FortiVM, your contributions will be subject to rigorous code reviews. Tests will be meticulously vetted for any potential harm before they reach my personal testing environment, ensuring that no changes will compromise the integrity of users' FortiGate setups.
 
-- **Prioritizing Software Integrity**: Even though this is an open-source project, the integrity of the software is paramount. Every stage of development prioritizes security, understanding the immense trust involved in granting API access to a security device with super admin privileges.
+- **Prioritizing Software Integrity**: The integrity of the software is paramount. Every stage of development prioritizes security, understanding the immense trust involved in granting API access to a security device with super admin privileges.
 
-- **Commitment to Transparency and Trust**: The open-source nature of **forti-api** allows the code to be audited by the community, which is crucial for maintaining security integrity. I am deeply committed to upholding this trust by adhering to the highest standards of software integrity.
-
-This ensures that whether you're a FortiVM subscriber or a physical device owner, you understand the importance of your role in contributing to **forti-api** and the shared commitment to maintaining a robust and secure codebase.
-
+This ensures that whether you're a FortiVM subscriber or a physical device owner, you understand the importance of your role in contributing to **Forti-API** and the shared commitment to maintaining a robust and secure codebase.
 
 ---
 
-**forti-api** is part of a broader effort to create reliable, efficient tools for network security management. Your participation can help shape the future of FortiGate management, making it more accessible and effective for everyone.
+**Forti-API** is part of a broader effort to create reliable, efficient tools for network security management.
 
 Join the community and help us simplify and enhance the FortiGate experience while upholding the highest standards of security and integrity.
+
