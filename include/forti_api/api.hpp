@@ -12,6 +12,7 @@
 #include <curl/curl.h>
 #include <algorithm>
 #include <cctype>
+#include <utility>
 
 struct Response {
     unsigned int size{}, matched_count{}, next_idx{}, http_status{}, build{};
@@ -97,13 +98,13 @@ class FortiAuth {
     }
 
     FortiAuth(unsigned int admin_ssh_port,
-              const std::string& gateway_ip,
-              const std::string& ca_cert_path,
-              const std::string& ssl_cert_path) :
+              std::string  gateway_ip,
+              std::string  ca_cert_path,
+              std::string  ssl_cert_path) :
               admin_ssh_port(admin_ssh_port),
-              gateway_ip(gateway_ip),
-              ca_cert_path(ca_cert_path),
-              ssl_cert_path(ssl_cert_path),
+              gateway_ip(std::move(gateway_ip)),
+              ca_cert_path(std::move(ca_cert_path)),
+              ssl_cert_path(std::move(ssl_cert_path)),
               cert_password(std::getenv("FORTIGATE_SSL_CERT_PASS")),
               api_key(std::getenv("FORTIGATE_API_KEY")) {
         auth_header = std::format("Authorization: Bearer {}", api_key);
