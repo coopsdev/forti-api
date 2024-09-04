@@ -235,6 +235,7 @@ class FortiAPI {
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 1L);
+            curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, "P12");  // Explicitly set certificate type to P12
             curl_easy_setopt(curl, CURLOPT_CAINFO, FortiAuth::get_ca_cert_path().c_str());
             curl_easy_setopt(curl, CURLOPT_SSLCERT, FortiAuth::get_ssl_cert_path().c_str());
             curl_easy_setopt(curl, CURLOPT_KEYPASSWD, FortiAuth::get_cert_password().c_str());
