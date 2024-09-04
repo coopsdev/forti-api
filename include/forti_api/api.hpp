@@ -28,12 +28,13 @@ inline static nlohmann::json convert_keys_to_hyphens(const nlohmann::json& j) {
     nlohmann::json result;
 
     std::array<std::string, 10> ignore_keys{
-        "q_origin_key"
+            "q_origin_key"
     };
 
     for (auto it = j.begin(); it != j.end(); ++it) {
         std::string key = it.key();
 
+        // Ignore certain keys
         bool should_process = true;
         for (const auto& ignore : ignore_keys) {
             if (key == ignore) {
@@ -43,17 +44,19 @@ inline static nlohmann::json convert_keys_to_hyphens(const nlohmann::json& j) {
         }
         if (!should_process) continue;
 
+        // Replace underscores with hyphens in the key
         std::replace(key.begin(), key.end(), '_', '-');
 
+        // Recursively process objects and arrays
         if (it->is_object()) result[key] = convert_keys_to_hyphens(*it);
         else if (it->is_array()) {
             nlohmann::json array_result = nlohmann::json::array();
-            for (const auto& elem : it.value()) {
+            for (const auto& elem : *it) {  // Use *it instead of it.value()
                 if (elem.is_object()) array_result.push_back(convert_keys_to_hyphens(elem));
-                else array_result.push_back(elem);
+                else array_result.push_back(elem);  // Directly add the element if it's not an object
             }
             result[key] = array_result;
-        } else result[key] = *it;
+        } else result[key] = *it;  // Directly copy the value if it's neither an object nor array
     }
 
     return result;
@@ -69,14 +72,12 @@ inline static nlohmann::json convert_keys_to_underscores(const nlohmann::json& j
         if (it->is_object()) result[key] = convert_keys_to_underscores(*it);
         else if (it->is_array()) {
             nlohmann::json array_result = nlohmann::json::array();
-            for (const auto& elem : it.value()) {
+            for (const auto& elem : *it) {  // Use *it instead of it.value()
                 if (elem.is_object()) array_result.push_back(convert_keys_to_underscores(elem));
-                else array_result.push_back(elem);
+                else array_result.push_back(elem);  // Directly add the element if it's not an object
             }
             result[key] = array_result;
-        } else {
-            result[key] = *it;
-        }
+        } else result[key] = *it;  // Directly copy the value if it's neither an object nor array
     }
 
     return result;
@@ -128,11 +129,7 @@ public:
         set_auth_header();
     }
 
-    static void set_auth_header() {
-        if (!api_key.empty()) {
-            auth_header = "Authorization: Bearer " + api_key;
-        }
-    }
+    static void set_auth_header() { if (!api_key.empty()) auth_header = "Authorization: Bearer " + api_key; }
 
     static unsigned int get_admin_https_port() {
         if (PROGRAM_IS_RUNNING && admin_https_port == 0) {
