@@ -83,62 +83,13 @@ inline static nlohmann::json convert_keys_to_underscores(const nlohmann::json& j
 }
 
 class FortiAuth {
-    unsigned int admin_ssh_port{};
-    std::string gateway_ip, ca_cert_path, ssl_cert_path, cert_password, api_key, auth_header;
-
-    FortiAuth() {
-        try {
-            admin_ssh_port = get_admin_https_port();
-            gateway_ip = get_gateway_ip();
-            ca_cert_path = get_ca_cert_path();
-            ssl_cert_path = get_ssl_cert_path();
-            cert_password = get_cert_password();
-            api_key = get_api_key();
-
-            auth_header = std::format("Authorization: Bearer {}", api_key);
-
-            assert_necessary_fields_exist();
-        } catch (const std::exception& e) {
-            std::cerr << "[ERROR] Initialization failed: " << e.what() << std::endl;
-            throw;
-        }
-    }
-
-    unsigned int get_admin_https_port() {
-        if (admin_ssh_port == 0) {
-            const char* admin_port_str = std::getenv("FORTIGATE_ADMIN_HTTPS_PORT");
-            if (admin_port_str == nullptr) {
-                throw std::runtime_error("Environment variable FORTIGATE_ADMIN_HTTPS_PORT is not set.");
-            }
-            admin_ssh_port = std::stoi(admin_port_str);
-        }
-        return admin_ssh_port;
-    }
-
-    std::string get_gateway_ip() {
-        if (gateway_ip.empty()) gateway_ip = check_env("FORTIGATE_GATEWAY_IP");
-        return gateway_ip;
-    }
-
-    std::string get_ca_cert_path() {
-        if (ca_cert_path.empty()) ca_cert_path = check_env("PATH_TO_FORTIGATE_CA_CERT");
-        return ca_cert_path;
-    }
-
-    std::string get_ssl_cert_path() {
-        if (ssl_cert_path.empty()) ssl_cert_path = check_env("PATH_TO_FORTIGATE_SSL_CERT");
-        return ssl_cert_path;
-    }
-
-    std::string get_cert_password() {
-        if (cert_password.empty()) cert_password = check_env("FORTIGATE_SSL_CERT_PASS");
-        return cert_password;
-    }
-
-    std::string get_api_key() {
-        if (api_key.empty()) api_key = check_env("FORTIGATE_API_KEY");
-        return api_key;
-    }
+    inline static unsigned int admin_https_port = 0;
+    inline static std::string gateway_ip;
+    inline static std::string ca_cert_path;
+    inline static std::string ssl_cert_path;
+    inline static std::string cert_password;
+    inline static std::string api_key;
+    inline static std::string auth_header;
 
     static std::string check_env(const char* env_var_name) {
         const char* value = std::getenv(env_var_name);
@@ -149,39 +100,83 @@ class FortiAuth {
         return value;
     }
 
-    void assert_necessary_fields_exist() {
-        if (ca_cert_path.empty() || ssl_cert_path.empty() || cert_password.empty() || api_key.empty()) {
-            std::cerr << "[INFO] One or more required fields are missing. Please check your environment variables and ensure all necessary fields are set.\n";
-            throw std::runtime_error("Missing required environment variables.");
-        } else {
-            std::cout << "[INFO] All necessary fields are present. Continuing execution.\n";
+public:
+    inline static bool PROGRAM_IS_RUNNING = false;
+
+    static void set_vars_from_env() {
+        set_admin_https_port(std::stoi(check_env("FORTIGATE_ADMIN_HTTPS_PORT")));
+        set_gateway_ip(check_env("FORTIGATE_GATEWAY_IP"));
+        set_ca_cert_path(check_env("PATH_TO_FORTIGATE_CA_CERT"));
+        set_ssl_cert_path(check_env("PATH_TO_FORTIGATE_SSL_CERT"));
+        set_cert_password(check_env("FORTIGATE_SSL_CERT_PASS"));
+        set_api_key(check_env("FORTIGATE_API_KEY"));
+        set_auth_header();
+    }
+
+    static void set_admin_https_port(unsigned int port) { admin_https_port = port; }
+
+    static void set_gateway_ip(const std::string& ip) { gateway_ip = ip; }
+
+    static void set_ca_cert_path(const std::string& path) { ca_cert_path = path; }
+
+    static void set_ssl_cert_path(const std::string& path) { ssl_cert_path = path; }
+
+    static void set_cert_password(const std::string& password) { cert_password = password; }
+
+    static void set_api_key(const std::string& key) {
+        api_key = key;
+        set_auth_header();
+    }
+
+    static void set_auth_header() {
+        if (!api_key.empty()) {
+            auth_header = "Authorization: Bearer " + api_key;
         }
     }
 
-public:
-    static FortiAuth& getInstance() {
-        static FortiAuth instance;
-        return instance;
+    static unsigned int get_admin_https_port() {
+        if (PROGRAM_IS_RUNNING && admin_https_port == 0) {
+            std::cerr << "[WARNING] admin_ssh_port is uninitialized!\n";
+        }
+        return admin_https_port;
     }
 
-    FortiAuth(const FortiAuth&) = delete;
-    FortiAuth& operator=(const FortiAuth&) = delete;
+    static std::string get_gateway_ip() {
+        if (PROGRAM_IS_RUNNING && gateway_ip.empty()) std::cerr << "[WARNING] gateway_ip is uninitialized!\n";
+        return gateway_ip;
+    }
 
-    // Accessors for other classes to use
-    unsigned int get_admin_https_port_value() { return get_admin_https_port(); }
-    std::string get_gateway_ip_value() { return get_gateway_ip(); }
-    std::string get_ca_cert_path_value() { return get_ca_cert_path(); }
-    std::string get_ssl_cert_path_value() { return get_ssl_cert_path(); }
-    std::string get_cert_password_value() { return get_cert_password(); }
-    std::string get_api_key_value() { return get_api_key(); }
-    std::string get_auth_header_value() { return auth_header; }
+    static std::string get_ca_cert_path() {
+        if (PROGRAM_IS_RUNNING && ca_cert_path.empty()) std::cerr << "[WARNING] ca_cert_path is uninitialized!\n";
+        return ca_cert_path;
+    }
+
+    static std::string get_ssl_cert_path() {
+        if (PROGRAM_IS_RUNNING && ssl_cert_path.empty()) std::cerr << "[WARNING] ssl_cert_path is uninitialized!\n";
+        return ssl_cert_path;
+    }
+
+    static std::string get_cert_password() {
+        if (PROGRAM_IS_RUNNING && cert_password.empty()) std::cerr << "[WARNING] cert_password is uninitialized!\n";
+        return cert_password;
+    }
+
+    static std::string get_api_key() {
+        if (PROGRAM_IS_RUNNING && api_key.empty()) std::cerr << "[WARNING] api_key is uninitialized!\n";
+        return api_key;
+    }
+
+    static std::string get_auth_header() {
+        if (PROGRAM_IS_RUNNING && auth_header.empty()) std::cerr << "[WARNING] auth_header is uninitialized!\n";
+        return auth_header;
+    }
 };
 
+
 class FortiAPI {
-    inline static FortiAuth& auth = FortiAuth::getInstance();
-    inline static std::string base_api_endpoint = std::format("https://{}:{}/api/v2",
-                                                              auth.get_gateway_ip_value(),
-                                                              auth.get_admin_https_port_value());
+    inline static std::string BASE_API_ENDPOINT() {
+        return std::format("https://{}:{}/api/v2", FortiAuth::get_gateway_ip(), FortiAuth::get_admin_https_port());
+    }
 
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
         ((std::string*)userp)->append((char*)contents, size * nmemb);
@@ -219,17 +214,19 @@ class FortiAPI {
 
     template<typename T>
     static T request(const std::string &method, const std::string &path, const nlohmann::json &data = {}) {
+        if (!FortiAuth::PROGRAM_IS_RUNNING) FortiAuth::PROGRAM_IS_RUNNING = true;
+
         CURL *curl;
         CURLcode res;
         std::string readBuffer;
 
         curl = curl_easy_init();
         if (curl) {
-            std::string url = base_api_endpoint + path;
+            std::string url = BASE_API_ENDPOINT() + path;
 
             struct curl_slist *headers = nullptr;
             headers = curl_slist_append(headers, "Content-Type: application/json");
-            headers = curl_slist_append(headers, auth.get_auth_header_value().c_str());
+            headers = curl_slist_append(headers, FortiAuth::get_auth_header().c_str());
 
             curl_easy_setopt(curl, CURLOPT_SSL_SESSIONID_CACHE, 1L);
             curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 0L);
@@ -241,9 +238,9 @@ class FortiAPI {
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 1L);
-            curl_easy_setopt(curl, CURLOPT_CAINFO, auth.get_ca_cert_path_value().c_str());
-            curl_easy_setopt(curl, CURLOPT_SSLCERT, auth.get_ssl_cert_path_value().c_str());
-            curl_easy_setopt(curl, CURLOPT_KEYPASSWD, auth.get_cert_password_value().c_str());
+            curl_easy_setopt(curl, CURLOPT_CAINFO, FortiAuth::get_ca_cert_path().c_str());
+            curl_easy_setopt(curl, CURLOPT_SSLCERT, FortiAuth::get_ssl_cert_path().c_str());
+            curl_easy_setopt(curl, CURLOPT_KEYPASSWD, FortiAuth::get_cert_password().c_str());
 
             std::string json_payload = convert_keys_to_hyphens(data).dump();  // do not simplify by deleting this
             if (method == "POST" || method == "PUT")

@@ -1,12 +1,12 @@
 project('forti-api', 'cpp',
-        version : '0.1.12',
+        version : '0.2.0',
         default_options : ['warning_level=3', 'cpp_std=c++23'])
 
 source_root = meson.source_root()
 
 json_dep = dependency('nlohmann_json', required: true)
 libcurl_dep = dependency('libcurl', required: true)
-gtest_dep = dependency('gtest', required: true, main: true)
+gtest_dep = dependency('gtest', required: true, main: false)
 
 global_deps = [json_dep, libcurl_dep]
 test_deps = global_deps + gtest_dep

@@ -61,10 +61,6 @@ struct SystemInterface {
     )
 };
 
-struct PhysicalInterface {
-
-};
-
 struct VirtualWANLink {
     std::string name, vdom, status, type, link, icon;
     bool is_sdwan_zone{}, valid_in_policy{};
