@@ -180,16 +180,18 @@ public:
                            });
     }
 
-    void trust(const std::string& ip_addr) {
-        if (std::regex_match(ip_addr, ipv4)) trusthost.push_back(std::make_shared<IPV4TrustHost>(ip_addr));
-        else if (std::regex_match(ip_addr, ipv6)) trusthost.push_back(std::make_shared<IPV6TrustHost>(ip_addr));
+    void trust(const std::string& subnet) {
+        if (is_trusted(subnet)) return;
+        if (std::regex_match(subnet, ipv4)) trusthost.push_back(std::make_shared<IPV4TrustHost>(subnet));
+        else if (std::regex_match(subnet, ipv6)) trusthost.push_back(std::make_shared<IPV6TrustHost>(subnet));
         update_trusthost();
     }
 
-    void distrust(const std::string& ip_addr) {
+    void distrust(const std::string& subnet) {
+        if (!is_trusted(subnet)) return;
         trusthost.erase(std::remove_if(trusthost.begin(), trusthost.end(),
-                                       [&ip_addr](const std::shared_ptr<TrustHostEntry>& entry) {
-                                           return entry->get_subnet() == ip_addr;
+                                       [&subnet](const std::shared_ptr<TrustHostEntry>& entry) {
+                                           return entry->get_subnet() == subnet;
                                        }), trusthost.end());
     }
 
