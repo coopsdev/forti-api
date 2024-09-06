@@ -159,12 +159,7 @@ struct TrustHost : public std::vector<std::shared_ptr<TrustHostEntry>> {
     }
 };
 
-class APIUser {
-    void update_trusthost() {
-        FortiAPI::post(std::format("{}/{}/trusthost", api_user_endpoint, name), trusthost);
-    }
-
-public:
+struct APIUser {
     inline static std::string api_user_endpoint = "/cmdb/system/api-user";
     std::string name, q_origin_key, comments, api_key, accprofile, schedule, cors_allow_origin,
             peer_auth, peer_group;
@@ -184,7 +179,6 @@ public:
         if (is_trusted(subnet)) return;
         if (std::regex_match(subnet, ipv4)) trusthost.push_back(std::make_shared<IPV4TrustHost>(subnet));
         else if (std::regex_match(subnet, ipv6)) trusthost.push_back(std::make_shared<IPV6TrustHost>(subnet));
-        update_trusthost();
     }
 
     void distrust(const std::string& subnet) {
