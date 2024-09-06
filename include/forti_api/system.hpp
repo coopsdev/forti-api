@@ -8,6 +8,7 @@
 #include "api.hpp"
 #include <string>
 #include <utility>
+#include <algorithm>
 
 
 // SYSTEM INTERFACE TYPES
@@ -94,7 +95,6 @@ enum class TrustHostType {
     IPV6,
 };
 
-// Base class for TrustHostEntry
 struct TrustHostEntry {
     unsigned int id{}, q_origin_key{};
     std::string type;
@@ -103,7 +103,7 @@ struct TrustHostEntry {
     explicit TrustHostEntry(std::string type) : type(std::move(type)) {}
 
     [[nodiscard]] virtual TrustHostType get_type() const = 0;
-    [[nodiscard]] virtual std::string get_ip() const = 0;
+    [[nodiscard]] virtual std::string get_subnet() const = 0;
     virtual ~TrustHostEntry() = default;
 
     [[nodiscard]] bool is_ipv4() const { return get_type() == TrustHostType::IPV4; }
@@ -114,7 +114,7 @@ struct TrustHostEntry {
                 {"id", host.id},
                 {"q_origin_key", host.q_origin_key},
                 {"type", host.type},
-                {host.is_ipv4() ? "ipv4-trusthost" : "ipv6-trusthost", host.get_ip()}
+                {host.is_ipv4() ? "ipv4-trusthost" : "ipv6-trusthost", host.get_subnet()}
         };
     }
 };
@@ -124,7 +124,7 @@ struct IPV4TrustHost : public TrustHostEntry {
     std::string ipv4_trusthost;
 
     [[nodiscard]] TrustHostType get_type() const override { return TrustHostType::IPV4; }
-    [[nodiscard]] std::string get_ip() const override { return ipv4_trusthost; }
+    [[nodiscard]] std::string get_subnet() const override { return ipv4_trusthost; }
 
     IPV4TrustHost() = default;
     explicit IPV4TrustHost(std::string ip_addr) : TrustHostEntry("ipv4-trusthost"), ipv4_trusthost(std::move(ip_addr)) {}
@@ -137,7 +137,7 @@ struct IPV6TrustHost : public TrustHostEntry {
     std::string ipv6_trusthost;
 
     [[nodiscard]] TrustHostType get_type() const override { return TrustHostType::IPV6; }
-    [[nodiscard]] std::string get_ip() const override { return ipv6_trusthost; }
+    [[nodiscard]] std::string get_subnet() const override { return ipv6_trusthost; }
 
     IPV6TrustHost() = default;
     explicit IPV6TrustHost(std::string ip_addr) : TrustHostEntry("ipv4-trusthost"), ipv6_trusthost(std::move(ip_addr)) {}
@@ -173,6 +173,13 @@ public:
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(APIUser, name, q_origin_key, comments, api_key, accprofile,
                                                 schedule, cors_allow_origin, peer_auth, peer_group, trusthost)
 
+    bool is_trusted(const std::string& subnet) {
+        return std::any_of(trusthost.begin(), trusthost.end(),
+                           [&subnet](std::shared_ptr<TrustHostEntry> host) {
+                               return host->get_subnet() == subnet;
+                           });
+    }
+
     void trust(const std::string& ip_addr) {
         if (std::regex_match(ip_addr, ipv4)) trusthost.push_back(std::make_shared<IPV4TrustHost>(ip_addr));
         else if (std::regex_match(ip_addr, ipv6)) trusthost.push_back(std::make_shared<IPV6TrustHost>(ip_addr));
@@ -180,10 +187,9 @@ public:
     }
 
     void distrust(const std::string& ip_addr) {
-        // Use std::remove_if to remove elements that match the condition
         trusthost.erase(std::remove_if(trusthost.begin(), trusthost.end(),
                                        [&ip_addr](const std::shared_ptr<TrustHostEntry>& entry) {
-                                           return entry->get_ip() == ip_addr;  // Match the IP address
+                                           return entry->get_subnet() == ip_addr;
                                        }), trusthost.end());
     }
 
@@ -291,7 +297,7 @@ namespace System {
                 return FortiAPI::get<AllAPIUsersResponse>(api_user_endpoint).results;
             }
 
-            static APIUser get_api_user(const std::string& api_admin_name) {
+            static APIUser get(const std::string& api_admin_name) {
                 auto endpoint = std::format("{}/{}", api_user_endpoint, api_admin_name);
                 auto response = FortiAPI::get<AllAPIUsersResponse>(endpoint);
                 if (response.status == "success") return response.results[0];
