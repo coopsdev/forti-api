@@ -190,7 +190,7 @@ struct APIUser {
     }
 
     void update() {
-        FortiAPI::post(std::format("{}/{}", api_user_endpoint, name), *this);
+        FortiAPI::put(std::format("{}/{}", api_user_endpoint, name), *this);
     }
 };
 
