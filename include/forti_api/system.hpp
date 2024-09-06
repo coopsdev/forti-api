@@ -175,7 +175,7 @@ public:
 
     bool is_trusted(const std::string& subnet) {
         return std::any_of(trusthost.begin(), trusthost.end(),
-                           [&subnet](std::shared_ptr<TrustHostEntry> host) {
+                           [&subnet](const std::shared_ptr<TrustHostEntry>& host) {
                                return host->get_subnet() == subnet;
                            });
     }
