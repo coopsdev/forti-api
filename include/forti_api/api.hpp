@@ -15,6 +15,10 @@
 #include <utility>
 #include <cstdlib>
 #include <stdexcept>
+#include <regex>
+
+inline static std::regex ipv4("(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])");
+inline static std::regex ipv6("((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4}");
 
 struct Response {
     unsigned int size{}, matched_count{}, next_idx{}, http_status{}, build{};
