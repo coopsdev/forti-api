@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <regex>
+#include <zlib.h>
 
 inline static std::regex ipv4("(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])");
 inline static std::regex ipv6("((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4}");
@@ -227,6 +228,7 @@ class FortiAPI {
 
             struct curl_slist *headers = nullptr;
             headers = curl_slist_append(headers, "Content-Type: application/json");
+            headers = curl_slist_append(headers, "Content-Encoding: gzip");
             headers = curl_slist_append(headers, FortiAuth::get_auth_header().c_str());
 
             curl_easy_setopt(curl, CURLOPT_SSL_SESSIONID_CACHE, 1L);
@@ -244,26 +246,59 @@ class FortiAPI {
             curl_easy_setopt(curl, CURLOPT_SSLCERT, FortiAuth::get_ssl_cert_path().c_str());
             curl_easy_setopt(curl, CURLOPT_KEYPASSWD, FortiAuth::get_cert_password().c_str());
 
-            std::string json_payload = convert_keys_to_hyphens(data).dump();  // do not simplify by deleting this
-            if (method == "POST" || method == "PUT")
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_payload.c_str());
+            std::string json_payload = convert_keys_to_hyphens(data).dump();
+
+            // Compress the payload if the method is POST, PUT, or DELETE
+            std::string compressed_payload;
+            if (method == "POST" || method == "PUT" || method == "DELETE") {
+                compressed_payload = compress_gzip(json_payload);
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, compressed_payload.c_str());
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, compressed_payload.size());
+            }
 
             if (method != "POST" && method != "GET")
                 curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method.c_str());
 
 #ifdef ENABLE_DEBUG
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-            curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, curl_debug_callback);
-            curl_easy_setopt(curl, CURLOPT_DEBUGDATA, nullptr);
+        curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, curl_debug_callback);
+        curl_easy_setopt(curl, CURLOPT_DEBUGDATA, nullptr);
 #endif
 
             res = curl_easy_perform(curl);
             if (res != CURLE_OK) std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+
             curl_easy_cleanup(curl);
         }
 
         return convert_keys_to_underscores(nlohmann::json::parse(readBuffer));
     }
+
+    static std::string compress_gzip(const std::string &input) {
+        z_stream stream;
+        memset(&stream, 0, sizeof(stream));
+        if (deflateInit2(&stream, Z_BEST_COMPRESSION, Z_DEFLATED, 15 | 16, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
+            throw std::runtime_error("Failed to initialize zlib for gzip compression");
+        }
+
+        stream.next_in = (Bytef*)input.data();
+        stream.avail_in = input.size();
+
+        std::string compressed;
+        char buffer[4096];
+
+        do {
+            stream.next_out = reinterpret_cast<Bytef*>(buffer);
+            stream.avail_out = sizeof(buffer);
+
+            deflate(&stream, Z_FINISH);
+            compressed.append(buffer, sizeof(buffer) - stream.avail_out);
+        } while (stream.avail_out == 0);
+
+        deflateEnd(&stream);
+        return compressed;
+    }
+
 
     static Response validate(const std::string &method, const std::string &path, const nlohmann::json &data = {}) {
         auto response = request<Response>(method, path, data);

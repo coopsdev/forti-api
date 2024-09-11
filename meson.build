@@ -17,6 +17,8 @@ foreach cpp_file : run_command('find', source_root + '/tests', '-type', 'f', '-n
 endforeach
 
 if get_option('buildtype') == 'debug'
+    add_project_arguments('-DENABLE_DEBUG', language: 'cpp')
+
     test('runTests', executable('runTests', test_sources, dependencies: test_deps))
 
     executable('forti-api', 'main.cpp',
